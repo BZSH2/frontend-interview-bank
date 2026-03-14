@@ -1,0 +1,32 @@
+services:
+  mysql:
+    image: docker.m.daocloud.io/library/mysql:8.4
+    container_name: frontend-interview-bank-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: change_me_root_password
+      MYSQL_DATABASE: frontend_interview_bank
+      MYSQL_USER: interview_app
+      MYSQL_PASSWORD: change_me_app_password
+    ports:
+      - '33306:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  api-server:
+    image: node:20-alpine
+    container_name: frontend-interview-bank-api
+    restart: unless-stopped
+    working_dir: /app/api-server
+    command: sh -c "node dist/main.js"
+    env_file:
+      - ../../api-server/.env
+    volumes:
+      - ../../api-server:/app/api-server
+    ports:
+      - '3000:3000'
+    depends_on:
+      - mysql
+
+volumes:
+  mysql_data:

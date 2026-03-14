@@ -143,3 +143,9 @@ git commit -m "chore(repo): add commitlint and husky"
 - 部署说明：`docs/deployment.md`
 - Nginx 示例：`deploy/nginx/frontend-interview-bank.conf.example`
 - PM2 示例：`deploy/pm2/ecosystem.config.cjs`
+
+## 交付补充
+
+- 发布检查清单：`docs/release-checklist.md`
+- 生产部署说明：`docs/deployment.md`
+- Docker 示例：`deploy/docker/docker-compose.app.example.yml`
