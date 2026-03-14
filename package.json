@@ -18,7 +18,11 @@
     "typecheck": "pnpm -r typecheck",
     "check": "pnpm lint && pnpm typecheck",
     "prepare": "husky",
-    "dev:admin": "pnpm --filter admin-web dev"
+    "dev:admin": "pnpm --filter admin-web dev",
+    "bootstrap:dev": "sh scripts/bootstrap-dev.sh",
+    "build:all": "sh scripts/build-all.sh",
+    "smoke:test": "sh scripts/smoke-test.sh",
+    "preview:all": "sh scripts/run-preview.sh"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",

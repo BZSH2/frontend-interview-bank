@@ -41,6 +41,12 @@ frontend-interview-bank/
 pnpm install
 ```
 
+> 也可以直接一键初始化：
+
+```bash
+pnpm bootstrap:dev
+```
+
 ### 2) 启动本地 MySQL
 
 ```bash
@@ -111,6 +117,10 @@ pnpm lint:fix
 pnpm format
 pnpm typecheck
 pnpm check
+pnpm bootstrap:dev
+pnpm build:all
+pnpm smoke:test
+pnpm preview:all
 pnpm --filter api-server prisma:push
 pnpm --filter api-server prisma:seed
 pnpm --filter api-server build
@@ -127,3 +137,9 @@ git commit -m "feat(api): add explanation request module"
 git commit -m "feat(app): scaffold question detail page"
 git commit -m "chore(repo): add commitlint and husky"
 ```
+
+## 部署
+
+- 部署说明：`docs/deployment.md`
+- Nginx 示例：`deploy/nginx/frontend-interview-bank.conf.example`
+- PM2 示例：`deploy/pm2/ecosystem.config.cjs`
