@@ -2,12 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Octokit } from '@octokit/rest';
 
-interface CreateExplanationIssueInput {
-  questionId: number;
-  title: string;
-  note?: string;
-  source: string;
-}
+import {
+  buildGithubIssueBody,
+  buildGithubIssueTitle,
+  type GithubExplanationIssuePayload,
+} from './github.helpers';
 
 @Injectable()
 export class GithubService {
@@ -28,7 +27,15 @@ export class GithubService {
     return Boolean(this.owner && this.repo && this.token && this.octokit);
   }
 
-  async createExplanationIssue(input: CreateExplanationIssueInput) {
+  getRepositoryInfo() {
+    return {
+      owner: this.owner,
+      repo: this.repo,
+      enabled: this.isConfigured(),
+    };
+  }
+
+  async createExplanationIssue(input: GithubExplanationIssuePayload) {
     if (!this.isConfigured() || !this.octokit || !this.owner || !this.repo) {
       this.logger.warn('GitHub repository or token is not configured. Skip creating issue.');
       return null;
@@ -37,20 +44,9 @@ export class GithubService {
     const issue = await this.octokit.rest.issues.create({
       owner: this.owner,
       repo: this.repo,
-      title: `[讲解申请] 题目#${input.questionId} - ${input.title}`,
+      title: buildGithubIssueTitle(input),
       labels: ['explanation-request', 'frontend', 'pending'],
-      body: [
-        '## 基本信息',
-        `- Question ID: ${input.questionId}`,
-        `- Title: ${input.title}`,
-        `- Source: ${input.source}`,
-        '',
-        '## 用户备注',
-        input.note || '无',
-        '',
-        '## 系统时间',
-        `- Submitted At: ${new Date().toISOString()}`,
-      ].join('\\n'),
+      body: buildGithubIssueBody(input),
     });
 
     return {

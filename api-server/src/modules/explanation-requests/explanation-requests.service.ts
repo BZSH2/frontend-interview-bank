@@ -43,6 +43,7 @@ export class ExplanationRequestsService {
 
     if (question.explanationRequest) {
       const supportCount = question.explanationRequest.supportCount + 1;
+      const isGithubSynced = Boolean(question.explanationRequest.githubIssueNumber);
 
       await this.prisma.$transaction([
         this.prisma.explanationRequest.update({
@@ -75,7 +76,10 @@ export class ExplanationRequestsService {
       return {
         success: true,
         mode: 'MERGED',
-        message: '该题已有讲解申请，已为你登记支持',
+        syncStatus: isGithubSynced ? 'github_synced' : 'local_only',
+        message: isGithubSynced
+          ? '该题已有讲解申请，已为你登记支持'
+          : '该题已有本地申请记录，已为你登记支持，后续可再同步到 GitHub',
         githubIssueNumber: question.explanationRequest.githubIssueNumber || null,
         supportCount,
       };
@@ -109,10 +113,15 @@ export class ExplanationRequestsService {
       },
     });
 
+    const isGithubSynced = Boolean(issue?.issueNumber);
+
     return {
       success: true,
       mode: 'CREATED',
-      message: '已创建新的讲解申请',
+      syncStatus: isGithubSynced ? 'github_synced' : 'local_only',
+      message: isGithubSynced
+        ? '已创建新的讲解申请，并同步到 GitHub'
+        : '已记录新的讲解申请；当前未配置 GitHub 自动同步，后续可补同步',
       githubIssueNumber: request.githubIssueNumber || null,
       supportCount: request.supportCount,
     };

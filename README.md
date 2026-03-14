@@ -70,7 +70,20 @@ pnpm --filter api-server prisma:push
 pnpm --filter api-server prisma:seed
 ```
 
-### 5) 启动服务
+### 5) 如需补同步到 GitHub（可选）
+
+当 `GITHUB_TOKEN` 为空时，用户申请会先落本地数据库。
+后面只要补上 token，就可以执行：
+
+```bash
+pnpm --filter api-server sync:github-issues:dry-run
+pnpm --filter api-server sync:github-issues
+```
+
+- `dry-run` 只预览哪些申请会被同步
+- 正式命令会把 `githubIssueNumber` / `githubIssueId` 回写数据库
+
+### 6) 启动服务
 
 ```bash
 pnpm dev:api
