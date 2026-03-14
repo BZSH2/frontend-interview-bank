@@ -51,6 +51,8 @@ const notice = ref<{ type: 'success' | 'error'; text: string } | null>(null);
 const questionFilters = reactive({
   keyword: '',
   categoryId: '',
+  difficulty: '',
+  status: '',
   hasExplanation: '',
 });
 
@@ -209,6 +211,8 @@ async function loadQuestions() {
       pageSize: questionPager.pageSize,
       keyword: questionFilters.keyword,
       categoryId: questionFilters.categoryId,
+      difficulty: questionFilters.difficulty,
+      status: questionFilters.status,
       hasExplanation: questionFilters.hasExplanation,
     });
     questions.value = result.list;
@@ -301,6 +305,11 @@ async function openEditQuestion(id: number) {
   } catch (error) {
     setNotice('error', error instanceof Error ? error.message : '题目详情加载失败');
   }
+}
+
+async function jumpToQuestionEditor(id: number) {
+  activeTab.value = 'questions';
+  await openEditQuestion(id);
 }
 
 function openEditCategory(item: AdminCategoryItem) {
@@ -469,12 +478,24 @@ onMounted(async () => {
             <button class="ghost-button" @click="loadQuestions">刷新</button>
           </div>
 
-          <div class="filters">
+          <div class="filters filters--questions">
             <input v-model="questionFilters.keyword" class="input" placeholder="搜索题目 / 摘要" />
             <select v-model="questionFilters.categoryId" class="select">
               <option value="">全部分类</option>
               <option v-for="item in categories" :key="item.id" :value="String(item.id)">
                 {{ item.name }}
+              </option>
+            </select>
+            <select v-model="questionFilters.difficulty" class="select">
+              <option value="">全部难度</option>
+              <option v-for="item in difficultyOptions" :key="item" :value="item">
+                {{ item }}
+              </option>
+            </select>
+            <select v-model="questionFilters.status" class="select">
+              <option value="">全部状态</option>
+              <option v-for="item in questionStatusOptions" :key="item" :value="item">
+                {{ item }}
               </option>
             </select>
             <select v-model="questionFilters.hasExplanation" class="select">
@@ -665,7 +686,7 @@ onMounted(async () => {
           <button class="ghost-button" @click="loadRequests">刷新</button>
         </div>
 
-        <div class="filters">
+        <div class="filters filters--requests">
           <input v-model="requestFilters.keyword" class="input" placeholder="搜索题目 / 用户备注" />
           <select v-model="requestFilters.status" class="select">
             <option value="">全部状态</option>
@@ -742,19 +763,26 @@ onMounted(async () => {
                 <td>{{ item.supportCount }}</td>
                 <td>{{ item.note || '-' }}</td>
                 <td>
-                  <button
-                    class="ghost-button"
-                    :disabled="syncingRequestId === item.id || item.syncStatus === 'github_synced'"
-                    @click="syncRequest(item.id)"
-                  >
-                    {{
-                      item.syncStatus === 'github_synced'
-                        ? '已同步'
-                        : syncingRequestId === item.id
-                          ? '同步中...'
-                          : '同步 GitHub'
-                    }}
-                  </button>
+                  <div class="action-stack">
+                    <button class="ghost-button" @click="jumpToQuestionEditor(item.questionId)">
+                      编辑题目
+                    </button>
+                    <button
+                      class="ghost-button"
+                      :disabled="
+                        syncingRequestId === item.id || item.syncStatus === 'github_synced'
+                      "
+                      @click="syncRequest(item.id)"
+                    >
+                      {{
+                        item.syncStatus === 'github_synced'
+                          ? '已同步'
+                          : syncingRequestId === item.id
+                            ? '同步中...'
+                            : '同步 GitHub'
+                      }}
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
