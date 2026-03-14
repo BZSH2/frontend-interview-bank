@@ -1,58 +1,82 @@
+name: interview-bank
+
 services:
-  frontend-interview-bank-api:
+  interview-bank-mysql:
+    image: docker.m.daocloud.io/library/mysql:8.4
+    container_name: interview-bank-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_me_root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-frontend_interview_bank}
+      MYSQL_USER: ${MYSQL_USER:-interview_app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change_me_app_password}
+    ports:
+      - '${MYSQL_HOST_PORT:-33307}:3306'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'mysqladmin',
+          'ping',
+          '-h',
+          '127.0.0.1',
+          '-uroot',
+          '-p${MYSQL_ROOT_PASSWORD:-change_me_root_password}',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - interview_bank_mysql_data:/var/lib/mysql
+
+  interview-bank-api:
     build:
       context: ../..
       dockerfile: api-server/Dockerfile
-    container_name: frontend-interview-bank-api
+    container_name: interview-bank-api
     restart: unless-stopped
     env_file:
       - ../../api-server/.env
+    environment:
+      DATABASE_URL: mysql://${MYSQL_USER:-interview_app}:${MYSQL_PASSWORD:-change_me_app_password}@interview-bank-mysql:3306/${MYSQL_DATABASE:-frontend_interview_bank}
+      PORT: 3000
     ports:
-      - '36000:3000'
+      - '${API_HOST_PORT:-36000}:3000'
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/api/health']
       interval: 30s
       timeout: 5s
       retries: 5
     depends_on:
-      - frontend-interview-bank-mysql
+      interview-bank-mysql:
+        condition: service_healthy
 
-  frontend-interview-bank-web:
+  interview-bank-web:
     build:
       context: ../..
       dockerfile: app-uni/Dockerfile
-    container_name: frontend-interview-bank-web
+      args:
+        VITE_API_BASE_URL: ${APP_H5_API_BASE_URL:-http://127.0.0.1:36000/api}
+    container_name: interview-bank-web
     restart: unless-stopped
     ports:
-      - '36080:80'
+      - '${APP_HOST_PORT:-36080}:80'
+    depends_on:
+      - interview-bank-api
 
-  frontend-interview-bank-admin:
+  interview-bank-admin:
     build:
       context: ../..
       dockerfile: admin-web/Dockerfile
-    container_name: frontend-interview-bank-admin
+      args:
+        VITE_API_BASE_URL: ${ADMIN_WEB_API_BASE_URL:-http://127.0.0.1:36000/api}
+        VITE_ADMIN_TOKEN: ${ADMIN_WEB_TOKEN:-}
+    container_name: interview-bank-admin
     restart: unless-stopped
     ports:
-      - '36081:80'
-
-  frontend-interview-bank-mysql:
-    image: docker.m.daocloud.io/library/mysql:8.4
-    container_name: frontend-interview-bank-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: root123456
-      MYSQL_DATABASE: frontend_interview_bank
-      MYSQL_USER: interview_app
-      MYSQL_PASSWORD: interview_app_123
-    ports:
-      - '33306:3306'
-    healthcheck:
-      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-uroot', '-proot123456']
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    volumes:
-      - frontend_interview_bank_mysql_data:/var/lib/mysql
+      - '${ADMIN_HOST_PORT:-36081}:80'
+    depends_on:
+      - interview-bank-api
 
 volumes:
-  frontend_interview_bank_mysql_data:
+  interview_bank_mysql_data:

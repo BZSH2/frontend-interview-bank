@@ -154,3 +154,4 @@ git commit -m "chore(repo): add commitlint and husky"
 - systemd 示例：`deploy/systemd/*.service.example`
 
 - 对齐 `nest-admin` 风格的 Docker 部署：`deploy/docker/docker-compose.nest-admin-style.yml`
+- Docker 环境变量示例：`deploy/docker/.env.nest-admin-style.example`

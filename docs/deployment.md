@@ -120,3 +120,15 @@ pnpm --filter admin-web build
 - 前台/后台 Nginx 静态镜像
 - Docker Compose 编排
 - `restart: unless-stopped` 常驻
+
+### Docker 构建时的前端环境变量
+
+由于 `app-uni` 和 `admin-web` 是静态构建产物，部署时必须在构建阶段注入：
+
+- `APP_H5_API_BASE_URL`
+- `ADMIN_WEB_API_BASE_URL`
+- `ADMIN_WEB_TOKEN`（如需）
+
+参考：`deploy/docker/.env.nest-admin-style.example`
+
+> 说明：在 `docker-compose.nest-admin-style.yml` 中，容器内的 API 会自动覆盖 `DATABASE_URL`，改为连接 `interview-bank-mysql:3306`，不会直接使用宿主机的 `127.0.0.1:33306`。

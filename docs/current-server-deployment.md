@@ -132,3 +132,42 @@ pnpm smoke:test
 - `vue-admin`（80）
 
 并存，不冲突。
+
+## 七、Docker Compose（对齐 nest-admin 风格）的实际用法
+
+先复制环境变量示例：
+
+```bash
+cp deploy/docker/.env.nest-admin-style.example deploy/docker/.env.nest-admin-style
+```
+
+按当前服务器实际 IP 改这几个值：
+
+- `APP_H5_API_BASE_URL`
+- `ADMIN_WEB_API_BASE_URL`
+- `ADMIN_WEB_TOKEN`（可选）
+
+然后执行：
+
+```bash
+docker compose \
+  --env-file deploy/docker/.env.nest-admin-style \
+  -f deploy/docker/docker-compose.nest-admin-style.yml up -d --build
+```
+
+默认对外端口：
+
+- API：`36000`
+- 用户端：`36080`
+- 后台：`36081`
+- MySQL：`33307`
+
+这样不会和当前已经在跑的：
+
+- `nest-admin`（35000）
+- `vue-admin`（80）
+- 本地开发 MySQL（33306）
+
+产生冲突。
+
+> 说明：在 `docker-compose.nest-admin-style.yml` 中，容器内的 API 会自动覆盖 `DATABASE_URL`，改为连接 `interview-bank-mysql:3306`，不会直接使用宿主机的 `127.0.0.1:33306`。

@@ -1,6 +1,11 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+ARG VITE_API_BASE_URL=http://127.0.0.1:36000/api
+ARG VITE_ADMIN_TOKEN=
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ENV VITE_ADMIN_TOKEN=${VITE_ADMIN_TOKEN}
+
 COPY package.json pnpm-workspace.yaml .
 COPY tsconfig.base.json .
 COPY admin-web/package.json ./admin-web/package.json
