@@ -19,6 +19,7 @@
 frontend-interview-bank/
 ├─ app-uni/
 ├─ api-server/
+├─ docker-compose.yml
 ├─ .husky/
 ├─ .github/workflows/
 └─ package.json
@@ -33,13 +34,57 @@ frontend-interview-bank/
 
 ## 快速开始
 
-> 当前仓库已完成第一版工程骨架。安装依赖后可启动开发。
+### 1) 安装依赖
 
 ```bash
 pnpm install
+```
+
+### 2) 启动本地 MySQL
+
+```bash
+docker compose up -d mysql
+```
+
+默认数据库配置：
+
+- host: `127.0.0.1`
+- port: `33306`
+- database: `frontend_interview_bank`
+- user: `interview_app`
+- password: `interview_app_123`
+
+### 3) 配置环境变量
+
+```bash
+cp api-server/.env.example api-server/.env
+cp app-uni/.env.example app-uni/.env
+```
+
+> `GITHUB_TOKEN` 可先留空；这样本地仍可跑通，只是用户点击“申请新增讲解”时不会自动创建 GitHub Issue。
+
+### 4) 初始化数据库并注入示例数据
+
+```bash
+pnpm --filter api-server prisma:push
+pnpm --filter api-server prisma:seed
+```
+
+### 5) 启动服务
+
+```bash
 pnpm dev:api
 pnpm dev:uni:h5
 ```
+
+## 已提供的示例数据
+
+seed 完成后会自动生成：
+
+- 6 个题目分类
+- 6 道前端面试题
+- 1 条已完成讲解的题目数据
+- 2 条“新增讲解申请”演示记录
 
 ## 关键脚本
 
@@ -49,6 +94,10 @@ pnpm lint:fix
 pnpm format
 pnpm typecheck
 pnpm check
+pnpm --filter api-server prisma:push
+pnpm --filter api-server prisma:seed
+pnpm --filter api-server build
+pnpm --filter app-uni build:h5
 ```
 
 ## 提交规范

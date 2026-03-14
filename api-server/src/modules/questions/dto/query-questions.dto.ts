@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export enum QuestionDifficulty {
@@ -8,11 +9,13 @@ export enum QuestionDifficulty {
 
 export class QueryQuestionsDto {
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   page = 1;
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(100)
@@ -23,6 +26,7 @@ export class QueryQuestionsDto {
   keyword?: string;
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   categoryId?: number;
