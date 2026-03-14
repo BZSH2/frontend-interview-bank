@@ -1,8 +1,18 @@
 <script setup lang="ts">
-const pages = getCurrentPages();
-const current = pages[pages.length - 1];
-const mode = current?.options?.mode || 'CREATED';
-const supportCount = Number(current?.options?.supportCount || 1);
+interface PageOptions {
+  mode?: string;
+  supportCount?: string;
+}
+
+function getPageOptions() {
+  const pages = getCurrentPages();
+  const current = pages[pages.length - 1] as { options?: PageOptions } | undefined;
+  return current?.options || {};
+}
+
+const pageOptions = getPageOptions();
+const mode = pageOptions.mode || 'CREATED';
+const supportCount = Number(pageOptions.supportCount || 1);
 </script>
 
 <template>
@@ -11,9 +21,15 @@ const supportCount = Number(current?.options?.supportCount || 1);
       <view class="result-card__icon">🎉</view>
       <view class="result-card__title">提交成功</view>
       <view class="result-card__desc">
-        {{ mode === 'MERGED' ? `该题已有申请，已累计 ${supportCount} 人支持。` : '已创建新的讲解申请。' }}
+        {{
+          mode === 'MERGED'
+            ? `该题已有申请，已累计 ${supportCount} 人支持。`
+            : '已创建新的讲解申请。'
+        }}
       </view>
-      <navigator class="result-card__action" url="/pages/question-list/index">继续浏览题库</navigator>
+      <navigator class="result-card__action" url="/pages/question-list/index"
+        >继续浏览题库</navigator
+      >
     </view>
   </view>
 </template>

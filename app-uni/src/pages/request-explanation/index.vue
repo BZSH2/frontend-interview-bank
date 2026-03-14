@@ -3,16 +3,29 @@ import { ref } from 'vue';
 
 import { createExplanationRequest } from '@/services/request';
 
+interface PageOptions {
+  questionId?: string;
+  title?: string;
+}
+
 const note = ref('');
 const submitting = ref(false);
 
-const pages = getCurrentPages();
-const current = pages[pages.length - 1];
-const questionId = Number(current?.options?.questionId || 0);
-const title = decodeURIComponent(current?.options?.title || '');
+function getPageOptions() {
+  const pages = getCurrentPages();
+  const current = pages[pages.length - 1] as { options?: PageOptions } | undefined;
+  return current?.options || {};
+}
+
+const pageOptions = getPageOptions();
+const questionId = Number(pageOptions.questionId || 0);
+const title = decodeURIComponent(pageOptions.title || '');
 
 async function submit() {
-  if (!questionId || submitting.value) return;
+  if (!questionId || submitting.value) {
+    return;
+  }
+
   submitting.value = true;
 
   try {
@@ -48,7 +61,7 @@ async function submit() {
       />
     </view>
 
-    <button :loading="submitting" class="submit-btn" type="primary" @click="submit">
+    <button class="submit-btn submit-btn--primary" :loading="submitting" @click="submit">
       提交讲解申请
     </button>
   </view>
@@ -88,5 +101,10 @@ async function submit() {
 
 .submit-btn {
   margin-top: 8rpx;
+
+  &--primary {
+    background: #1677ff;
+    color: #fff;
+  }
 }
 </style>

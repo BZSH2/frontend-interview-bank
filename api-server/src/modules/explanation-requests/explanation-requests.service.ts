@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
-import { GithubService } from '../github/github.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { GithubService } from '../github/github.service';
 import { CreateExplanationRequestDto } from './dto/create-explanation-request.dto';
 
 interface RequestMeta {

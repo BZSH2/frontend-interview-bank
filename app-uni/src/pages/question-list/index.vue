@@ -30,7 +30,9 @@ onMounted(loadQuestions);
   <view class="page">
     <view class="toolbar">
       <input v-model="keyword" class="toolbar__input" placeholder="搜索题目 / 标签 / 关键词" />
-      <button class="toolbar__button" size="mini" type="primary" @click="loadQuestions">搜索</button>
+      <button class="toolbar__button toolbar__button--primary" size="mini" @click="loadQuestions">
+        搜索
+      </button>
     </view>
 
     <view v-if="loading" class="state">加载中...</view>
@@ -58,6 +60,13 @@ onMounted(loadQuestions);
     padding: 20rpx 24rpx;
     border-radius: 16rpx;
     background: #fff;
+  }
+
+  &__button {
+    &--primary {
+      background: #1677ff;
+      color: #fff;
+    }
   }
 }
 

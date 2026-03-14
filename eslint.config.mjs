@@ -46,6 +46,16 @@ export default [
     },
   },
   {
+    files: ['**/*.cjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        module: 'readonly',
+        require: 'readonly',
+      },
+    },
+  },
+  {
     files: ['**/*.vue'],
     languageOptions: {
       parser: vueParser,
@@ -66,6 +76,9 @@ export default [
       globals: {
         ...globals.node,
       },
+    },
+    rules: {
+      '@typescript-eslint/consistent-type-imports': 'off',
     },
   },
   {

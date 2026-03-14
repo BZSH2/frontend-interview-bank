@@ -11,20 +11,20 @@
     "typecheck": "vue-tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@dcloudio/uni-app": "^3.0.0-4060720260228001",
-    "@dcloudio/uni-components": "^3.0.0-4060720260228001",
-    "@dcloudio/uni-h5": "^3.0.0-4060720260228001",
-    "@dcloudio/uni-mp-weixin": "^3.0.0-4060720260228001",
-    "pinia": "^2.3.1",
-    "vue": "^3.5.13"
+    "@dcloudio/uni-app": "3.0.0-alpha-5000320260310001",
+    "@dcloudio/uni-components": "3.0.0-alpha-5000320260310001",
+    "@dcloudio/uni-h5": "3.0.0-alpha-5000320260310001",
+    "@dcloudio/uni-mp-weixin": "3.0.0-alpha-5000320260310001",
+    "pinia": "2.1.7",
+    "vue": "3.4.21"
   },
   "devDependencies": {
-    "@dcloudio/types": "^3.4.16",
-    "@dcloudio/vite-plugin-uni": "^3.0.0-4060720260228001",
-    "@types/node": "^22.13.10",
-    "sass": "^1.85.1",
-    "typescript": "^5.8.2",
-    "vite": "^5.4.14",
-    "vue-tsc": "^2.2.8"
+    "@dcloudio/types": "3.4.28",
+    "@dcloudio/vite-plugin-uni": "3.0.0-alpha-5000320260310001",
+    "@types/node": "22.13.10",
+    "sass": "1.85.1",
+    "typescript": "5.8.2",
+    "vite": "5.2.8",
+    "vue-tsc": "2.2.8"
   }
 }

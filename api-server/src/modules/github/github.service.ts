@@ -50,8 +50,7 @@ export class GithubService {
         '',
         '## 系统时间',
         `- Submitted At: ${new Date().toISOString()}`,
-      ].join('
-'),
+      ].join('\\n'),
     });
 
     return {

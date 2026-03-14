@@ -4,15 +4,26 @@ import { onMounted, ref } from 'vue';
 import { getQuestionDetail, getQuestionRequestStatus } from '@/services/question';
 import type { QuestionDetail, QuestionRequestStatus } from '@/types/question';
 
+interface PageOptions {
+  id?: string;
+}
+
 const question = ref<QuestionDetail | null>(null);
 const requestStatus = ref<QuestionRequestStatus | null>(null);
 
-async function loadDetail() {
+function getPageOptions() {
   const pages = getCurrentPages();
-  const current = pages[pages.length - 1];
-  const id = Number(current?.options?.id || 0);
+  const current = pages[pages.length - 1] as { options?: PageOptions } | undefined;
+  return current?.options || {};
+}
 
-  if (!id) return;
+async function loadDetail() {
+  const options = getPageOptions();
+  const id = Number(options.id || 0);
+
+  if (!id) {
+    return;
+  }
 
   const [detailResult, statusResult] = await Promise.all([
     getQuestionDetail(id),
@@ -24,7 +35,10 @@ async function loadDetail() {
 }
 
 function navigateToRequest() {
-  if (!question.value) return;
+  if (!question.value) {
+    return;
+  }
+
   uni.navigateTo({
     url: `/pages/request-explanation/index?questionId=${question.value.id}&title=${encodeURIComponent(question.value.title)}`,
   });
@@ -50,12 +64,16 @@ onMounted(loadDetail);
       <view class="card__content">{{ question.answer || '暂未补充' }}</view>
     </view>
 
-    <view class="card" v-if="requestStatus">
+    <view v-if="requestStatus" class="card">
       <view class="card__section-title">讲解申请状态</view>
       <view class="card__content">
-        {{ requestStatus.hasRequest ? `已有 ${requestStatus.supportCount} 人申请` : '当前还没有申请记录' }}
+        {{
+          requestStatus.hasRequest
+            ? `已有 ${requestStatus.supportCount} 人申请`
+            : '当前还没有申请记录'
+        }}
       </view>
-      <button class="action-btn" type="primary" @click="navigateToRequest">
+      <button class="action-btn action-btn--primary" @click="navigateToRequest">
         {{ requestStatus.hasRequest ? '我也想看这题讲解' : '申请新增讲解' }}
       </button>
     </view>
@@ -103,5 +121,10 @@ onMounted(loadDetail);
 
 .action-btn {
   margin-top: 8rpx;
+
+  &--primary {
+    background: #1677ff;
+    color: #fff;
+  }
 }
 </style>

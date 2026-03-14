@@ -1,11 +1,12 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
+    "baseUrl": ".",
     "types": ["@dcloudio/types", "node"],
     "lib": ["ES2022", "DOM"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.vue"]
+  "include": ["src/**/*.ts", "src/**/*.vue", "src/env.d.ts"]
 }

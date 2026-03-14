@@ -34,3 +34,5 @@ app-uni/.hbuilderx/
 # prisma
 api-server/prisma/dev.db
 api-server/prisma/*.db
+
+.eslintcache
