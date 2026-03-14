@@ -8,12 +8,14 @@ export class AdminOverviewService {
 
   async getOverview() {
     const [
+      categoryTotal,
       questionTotal,
       withExplanationCount,
       requestTotal,
       pendingRequestCount,
       localOnlyRequestCount,
     ] = await this.prisma.$transaction([
+      this.prisma.category.count(),
       this.prisma.question.count(),
       this.prisma.question.count({ where: { hasExplanation: true } }),
       this.prisma.explanationRequest.count(),
@@ -22,6 +24,7 @@ export class AdminOverviewService {
     ]);
 
     return {
+      categoryTotal,
       questionTotal,
       withExplanationCount,
       requestTotal,

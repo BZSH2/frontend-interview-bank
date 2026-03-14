@@ -1,9 +1,11 @@
 import type {
+  AdminCategoryItem,
   AdminOverview,
   AdminQuestionDetail,
   AdminQuestionListResponse,
   AdminRequestListResponse,
   CategoryItem,
+  CategoryPayload,
   QuestionPayload,
   RequestStatus,
   RequestStatusUpdateResult,
@@ -18,6 +20,24 @@ export function getAdminOverview() {
 
 export function getCategories() {
   return request<CategoryItem[]>('/categories');
+}
+
+export function getAdminCategories() {
+  return request<AdminCategoryItem[]>('/admin/categories');
+}
+
+export function createAdminCategory(payload: CategoryPayload) {
+  return request<AdminCategoryItem>('/admin/categories', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export function updateAdminCategory(id: number, payload: Partial<CategoryPayload>) {
+  return request<AdminCategoryItem>(`/admin/categories/${id}`, {
+    method: 'PATCH',
+    body: payload,
+  });
 }
 
 export function getAdminQuestions(params: Record<string, unknown>) {

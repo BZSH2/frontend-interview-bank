@@ -4,7 +4,14 @@ export interface CategoryItem {
   sort: number;
 }
 
+export interface AdminCategoryItem extends CategoryItem {
+  _count?: {
+    questions: number;
+  };
+}
+
 export interface AdminOverview {
+  categoryTotal: number;
   questionTotal: number;
   withExplanationCount: number;
   requestTotal: number;
@@ -82,6 +89,11 @@ export interface QuestionPayload {
   tags?: string[];
   explanationContent?: string;
   explanationStatus?: ExplanationStatus;
+}
+
+export interface CategoryPayload {
+  name: string;
+  sort?: number;
 }
 
 export interface AdminExplanationRequestItem {

@@ -2,17 +2,21 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 
 import {
+  createAdminCategory,
   createAdminQuestion,
+  getAdminCategories,
   getAdminExplanationRequests,
   getAdminOverview,
   getAdminQuestionDetail,
   getAdminQuestions,
   getCategories,
   syncAdminExplanationRequest,
+  updateAdminCategory,
   updateAdminExplanationRequestStatus,
   updateAdminQuestion,
 } from '@/api/admin';
 import type {
+  AdminCategoryItem,
   AdminExplanationRequestItem,
   AdminOverview,
   AdminQuestionDetail,
@@ -28,17 +32,20 @@ import type {
 
 const overview = ref<AdminOverview | null>(null);
 const categories = ref<CategoryItem[]>([]);
+const adminCategories = ref<AdminCategoryItem[]>([]);
 const questions = ref<AdminQuestionListItem[]>([]);
 const requests = ref<AdminExplanationRequestItem[]>([]);
 
 const loadingOverview = ref(false);
 const loadingQuestions = ref(false);
 const loadingRequests = ref(false);
+const loadingCategories = ref(false);
 const savingQuestion = ref(false);
+const savingCategory = ref(false);
 const syncingRequestId = ref<number | null>(null);
 const updatingRequestId = ref<number | null>(null);
 
-const activeTab = ref<'questions' | 'requests'>('questions');
+const activeTab = ref<'questions' | 'requests' | 'categories'>('questions');
 const notice = ref<{ type: 'success' | 'error'; text: string } | null>(null);
 
 const questionFilters = reactive({
@@ -68,6 +75,13 @@ const questionForm = reactive({
   explanationStatus: 'PUBLISHED' as ExplanationStatus,
 });
 
+const categoryEditorMode = ref<'create' | 'edit'>('create');
+const selectedCategoryId = ref<number | null>(null);
+const categoryForm = reactive({
+  name: '',
+  sort: '0',
+});
+
 const difficultyOptions: Difficulty[] = ['EASY', 'MEDIUM', 'HARD'];
 const questionStatusOptions: QuestionStatus[] = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
 const explanationStatusOptions: ExplanationStatus[] = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
@@ -76,6 +90,9 @@ const syncStatusOptions: SyncStatus[] = ['local_only', 'github_synced'];
 
 const questionEditorTitle = computed(() =>
   editorMode.value === 'create' ? '新建题目' : `编辑题目 #${selectedQuestionId.value}`,
+);
+const categoryEditorTitle = computed(() =>
+  categoryEditorMode.value === 'create' ? '新建分类' : `编辑分类 #${selectedCategoryId.value}`,
 );
 
 function setNotice(type: 'success' | 'error', text: string) {
@@ -95,6 +112,11 @@ function resetQuestionForm() {
   questionForm.explanationStatus = 'PUBLISHED';
 }
 
+function resetCategoryForm() {
+  categoryForm.name = '';
+  categoryForm.sort = '0';
+}
+
 function fillQuestionForm(detail: AdminQuestionDetail) {
   questionForm.categoryId = String(detail.categoryId);
   questionForm.title = detail.title;
@@ -106,6 +128,11 @@ function fillQuestionForm(detail: AdminQuestionDetail) {
   questionForm.tagsText = detail.tags?.join(', ') || '';
   questionForm.explanationContent = detail.explanationContent || '';
   questionForm.explanationStatus = detail.explanationStatus || 'PUBLISHED';
+}
+
+function fillCategoryForm(item: AdminCategoryItem) {
+  categoryForm.name = item.name;
+  categoryForm.sort = String(item.sort);
 }
 
 function buildQuestionPayload(): QuestionPayload {
@@ -126,6 +153,13 @@ function buildQuestionPayload(): QuestionPayload {
   };
 }
 
+function buildCategoryPayload() {
+  return {
+    name: categoryForm.name.trim(),
+    sort: Number(categoryForm.sort || 0),
+  };
+}
+
 async function loadOverview() {
   loadingOverview.value = true;
   try {
@@ -141,6 +175,17 @@ async function loadCategories() {
   categories.value = await getCategories();
   if (!questionForm.categoryId && categories.value[0]) {
     questionForm.categoryId = String(categories.value[0].id);
+  }
+}
+
+async function loadAdminCategories() {
+  loadingCategories.value = true;
+  try {
+    adminCategories.value = await getAdminCategories();
+  } catch (error) {
+    setNotice('error', error instanceof Error ? error.message : '分类列表加载失败');
+  } finally {
+    loadingCategories.value = false;
   }
 }
 
@@ -181,13 +226,25 @@ async function loadRequests() {
 }
 
 async function bootstrap() {
-  await Promise.all([loadCategories(), loadOverview(), loadQuestions(), loadRequests()]);
+  await Promise.all([
+    loadCategories(),
+    loadAdminCategories(),
+    loadOverview(),
+    loadQuestions(),
+    loadRequests(),
+  ]);
 }
 
-async function openCreateQuestion() {
+function openCreateQuestion() {
   editorMode.value = 'create';
   selectedQuestionId.value = null;
   resetQuestionForm();
+}
+
+function openCreateCategory() {
+  categoryEditorMode.value = 'create';
+  selectedCategoryId.value = null;
+  resetCategoryForm();
 }
 
 async function openEditQuestion(id: number) {
@@ -200,6 +257,12 @@ async function openEditQuestion(id: number) {
   } catch (error) {
     setNotice('error', error instanceof Error ? error.message : '题目详情加载失败');
   }
+}
+
+function openEditCategory(item: AdminCategoryItem) {
+  categoryEditorMode.value = 'edit';
+  selectedCategoryId.value = item.id;
+  fillCategoryForm(item);
 }
 
 async function submitQuestion() {
@@ -231,6 +294,35 @@ async function submitQuestion() {
   }
 }
 
+async function submitCategory() {
+  if (!categoryForm.name.trim()) {
+    setNotice('error', '分类名称不能为空');
+    return;
+  }
+
+  savingCategory.value = true;
+  try {
+    const payload = buildCategoryPayload();
+    if (categoryEditorMode.value === 'create') {
+      const created = await createAdminCategory(payload);
+      selectedCategoryId.value = created.id;
+      fillCategoryForm(created);
+      categoryEditorMode.value = 'edit';
+      setNotice('success', `分类 #${created.id} 创建成功`);
+    } else if (selectedCategoryId.value) {
+      const updated = await updateAdminCategory(selectedCategoryId.value, payload);
+      fillCategoryForm(updated);
+      setNotice('success', `分类 #${updated.id} 已更新`);
+    }
+
+    await Promise.all([loadCategories(), loadAdminCategories(), loadOverview(), loadQuestions()]);
+  } catch (error) {
+    setNotice('error', error instanceof Error ? error.message : '分类保存失败');
+  } finally {
+    savingCategory.value = false;
+  }
+}
+
 async function updateRequestStatus(id: number, status: RequestStatus) {
   updatingRequestId.value = id;
   try {
@@ -259,6 +351,7 @@ async function syncRequest(id: number) {
 
 onMounted(async () => {
   resetQuestionForm();
+  resetCategoryForm();
   await bootstrap();
 });
 </script>
@@ -268,7 +361,7 @@ onMounted(async () => {
     <header class="hero">
       <div>
         <h1>前端面试题库后台</h1>
-        <p>管理题目、讲解内容与用户讲解申请，支持后续同步 GitHub。</p>
+        <p>管理分类、题目、讲解内容与用户申请，支持后续同步 GitHub。</p>
       </div>
       <div class="hero__actions">
         <button class="primary-button" @click="bootstrap">刷新全部</button>
@@ -277,6 +370,10 @@ onMounted(async () => {
     </header>
 
     <section class="overview-grid">
+      <article class="overview-card">
+        <span>分类总数</span>
+        <strong>{{ loadingOverview ? '...' : (overview?.categoryTotal ?? '-') }}</strong>
+      </article>
       <article class="overview-card">
         <span>题目总数</span>
         <strong>{{ loadingOverview ? '...' : (overview?.questionTotal ?? '-') }}</strong>
@@ -288,10 +385,6 @@ onMounted(async () => {
       <article class="overview-card">
         <span>申请总数</span>
         <strong>{{ loadingOverview ? '...' : (overview?.requestTotal ?? '-') }}</strong>
-      </article>
-      <article class="overview-card">
-        <span>待处理申请</span>
-        <strong>{{ loadingOverview ? '...' : (overview?.pendingRequestCount ?? '-') }}</strong>
       </article>
       <article class="overview-card overview-card--warn">
         <span>待同步 GitHub</span>
@@ -316,6 +409,12 @@ onMounted(async () => {
           @click="activeTab = 'requests'"
         >
           讲解申请
+        </button>
+        <button
+          :class="['tab-button', { 'tab-button--active': activeTab === 'categories' }]"
+          @click="activeTab = 'categories'"
+        >
+          分类管理
         </button>
       </div>
 
@@ -411,7 +510,6 @@ onMounted(async () => {
                 </option>
               </select>
             </label>
-
             <label>
               <span>难度</span>
               <select v-model="questionForm.difficulty" class="select">
@@ -420,7 +518,6 @@ onMounted(async () => {
                 </option>
               </select>
             </label>
-
             <label>
               <span>发布状态</span>
               <select v-model="questionForm.status" class="select">
@@ -429,12 +526,10 @@ onMounted(async () => {
                 </option>
               </select>
             </label>
-
             <label class="form-grid__full">
               <span>题目标题</span>
               <input v-model="questionForm.title" class="input" placeholder="请输入题目标题" />
             </label>
-
             <label class="form-grid__full">
               <span>题目摘要</span>
               <input
@@ -443,7 +538,6 @@ onMounted(async () => {
                 placeholder="一句话概括题目要点"
               />
             </label>
-
             <label class="form-grid__full">
               <span>标签（逗号分隔）</span>
               <input
@@ -452,7 +546,6 @@ onMounted(async () => {
                 placeholder="JavaScript, 闭包, 作用域"
               />
             </label>
-
             <label class="form-grid__full">
               <span>题目内容</span>
               <textarea
@@ -461,7 +554,6 @@ onMounted(async () => {
                 placeholder="请输入题目正文"
               ></textarea>
             </label>
-
             <label class="form-grid__full">
               <span>参考答案</span>
               <textarea
@@ -470,7 +562,6 @@ onMounted(async () => {
                 placeholder="请输入参考答案"
               ></textarea>
             </label>
-
             <label>
               <span>讲解状态</span>
               <select v-model="questionForm.explanationStatus" class="select">
@@ -479,7 +570,6 @@ onMounted(async () => {
                 </option>
               </select>
             </label>
-
             <label class="form-grid__full">
               <span>系统讲解内容</span>
               <textarea
@@ -498,7 +588,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div v-else class="card">
+      <div v-else-if="activeTab === 'requests'" class="card">
         <div class="card__header">
           <h2>讲解申请</h2>
           <button class="ghost-button" @click="loadRequests">刷新</button>
@@ -572,9 +662,8 @@ onMounted(async () => {
                         ? 'status-tag--success'
                         : 'status-tag--warn',
                     ]"
+                    >{{ item.syncStatus }}</span
                   >
-                    {{ item.syncStatus }}
-                  </span>
                   <div v-if="item.githubIssueNumber" class="cell-sub">
                     Issue #{{ item.githubIssueNumber }}
                   </div>
@@ -601,6 +690,74 @@ onMounted(async () => {
           </table>
         </div>
       </div>
+
+      <div v-else class="admin-grid admin-grid--categories">
+        <div class="card">
+          <div class="card__header">
+            <h2>分类列表</h2>
+            <button class="ghost-button" @click="loadAdminCategories">刷新</button>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>名称</th>
+                  <th>排序</th>
+                  <th>题目数</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="loadingCategories">
+                  <td colspan="5">加载中...</td>
+                </tr>
+                <tr v-else-if="adminCategories.length === 0">
+                  <td colspan="5">暂无分类</td>
+                </tr>
+                <tr v-for="item in adminCategories" :key="item.id">
+                  <td>{{ item.id }}</td>
+                  <td>{{ item.name }}</td>
+                  <td>{{ item.sort }}</td>
+                  <td>{{ item._count?.questions ?? 0 }}</td>
+                  <td>
+                    <button class="ghost-button" @click="openEditCategory(item)">编辑</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__header">
+            <h2>{{ categoryEditorTitle }}</h2>
+            <button class="ghost-button" @click="openCreateCategory">重置</button>
+          </div>
+          <div class="form-grid">
+            <label class="form-grid__full">
+              <span>分类名称</span>
+              <input v-model="categoryForm.name" class="input" placeholder="请输入分类名称" />
+            </label>
+            <label>
+              <span>排序</span>
+              <input v-model="categoryForm.sort" class="input" type="number" min="0" />
+            </label>
+          </div>
+          <div class="card__footer">
+            <button class="primary-button" :disabled="savingCategory" @click="submitCategory">
+              {{
+                savingCategory
+                  ? '保存中...'
+                  : categoryEditorMode === 'create'
+                    ? '创建分类'
+                    : '保存分类'
+              }}
+            </button>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
 </template>
@@ -617,15 +774,12 @@ onMounted(async () => {
     'Segoe UI',
     sans-serif;
 }
-
 * {
   box-sizing: border-box;
 }
-
 .layout {
   padding: 24px;
 }
-
 .hero,
 .card,
 .overview-card,
@@ -634,7 +788,6 @@ onMounted(async () => {
   background: #fff;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
 }
-
 .hero {
   display: flex;
   justify-content: space-between;
@@ -643,76 +796,62 @@ onMounted(async () => {
   padding: 28px;
   margin-bottom: 24px;
 }
-
 .hero h1 {
   margin: 0 0 8px;
   font-size: 28px;
 }
-
 .hero p {
   margin: 0;
   color: #667085;
 }
-
 .hero__actions {
   display: flex;
   gap: 12px;
 }
-
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
-
 .overview-card {
   padding: 20px;
 }
-
 .overview-card span {
   display: block;
   margin-bottom: 8px;
   color: #667085;
   font-size: 14px;
 }
-
 .overview-card strong {
   font-size: 28px;
 }
-
 .overview-card--warn {
   background: linear-gradient(135deg, #fff7e6, #fff1b8);
 }
-
 .notice {
   padding: 14px 18px;
   margin-bottom: 24px;
 }
-
 .notice--success {
   border: 1px solid #b7eb8f;
   color: #237804;
   background: #f6ffed;
 }
-
 .notice--error {
   border: 1px solid #ffccc7;
   color: #cf1322;
   background: #fff1f0;
 }
-
 .panel {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
-
 .panel__tabs {
   display: flex;
   gap: 12px;
 }
-
 .tab-button,
 .primary-button,
 .secondary-button,
@@ -722,47 +861,42 @@ onMounted(async () => {
   cursor: pointer;
   transition: 0.2s ease;
 }
-
 .tab-button {
   padding: 12px 16px;
   background: #fff;
   color: #344054;
 }
-
 .tab-button--active {
   background: #1677ff;
   color: #fff;
 }
-
 .primary-button {
   padding: 12px 18px;
   background: #1677ff;
   color: #fff;
 }
-
 .primary-button:disabled,
 .ghost-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
 .secondary-button,
 .ghost-button {
   padding: 12px 18px;
   background: #f2f4f7;
   color: #344054;
 }
-
 .admin-grid {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
   gap: 20px;
 }
-
+.admin-grid--categories {
+  grid-template-columns: 1fr 0.8fr;
+}
 .card {
   padding: 20px;
 }
-
 .card__header,
 .card__footer {
   display: flex;
@@ -771,19 +905,16 @@ onMounted(async () => {
   gap: 16px;
   margin-bottom: 16px;
 }
-
 .card__header h2 {
   margin: 0;
   font-size: 18px;
 }
-
 .filters {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
-
 .input,
 .select,
 .textarea {
@@ -794,29 +925,23 @@ onMounted(async () => {
   background: #fff;
   font: inherit;
 }
-
 .select--small {
   min-width: 140px;
 }
-
 .textarea {
   min-height: 120px;
   resize: vertical;
 }
-
 .textarea--large {
   min-height: 180px;
 }
-
 .table-wrap {
   overflow: auto;
 }
-
 .table {
   width: 100%;
   border-collapse: collapse;
 }
-
 .table th,
 .table td {
   padding: 12px 10px;
@@ -824,22 +949,18 @@ onMounted(async () => {
   text-align: left;
   vertical-align: top;
 }
-
 .table th {
   font-size: 13px;
   color: #667085;
 }
-
 .cell-title {
   font-weight: 600;
 }
-
 .cell-sub {
   margin-top: 4px;
   color: #667085;
   font-size: 12px;
 }
-
 .status-tag {
   display: inline-flex;
   align-items: center;
@@ -847,49 +968,41 @@ onMounted(async () => {
   border-radius: 999px;
   font-size: 12px;
 }
-
 .status-tag--success {
   background: #ecfdf3;
   color: #027a48;
 }
-
 .status-tag--warn {
   background: #fff7e6;
   color: #d46b08;
 }
-
 .status-tag--muted {
   background: #f2f4f7;
   color: #667085;
 }
-
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
-
 .form-grid label {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-
 .form-grid span {
   font-size: 13px;
   color: #475467;
 }
-
 .form-grid__full {
   grid-column: 1 / -1;
 }
-
 @media (max-width: 1200px) {
   .overview-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .admin-grid {
+  .admin-grid,
+  .admin-grid--categories {
     grid-template-columns: 1fr;
   }
 }
