@@ -6,9 +6,11 @@ import { useQuestionStore } from '@/stores/question';
 
 const questionStore = useQuestionStore();
 
-onMounted(async () => {
+async function loadHome() {
   await questionStore.bootstrapHome();
-});
+}
+
+onMounted(loadHome);
 </script>
 
 <template>
@@ -21,16 +23,28 @@ onMounted(async () => {
 
     <view class="section">
       <view class="section__title">分类</view>
-      <view class="section__chips">
-        <view v-for="category in questionStore.categories" :key="category.id" class="chip">
+      <view v-if="questionStore.loading" class="section__state">分类加载中...</view>
+      <view v-else class="section__chips">
+        <navigator
+          v-for="category in questionStore.categories"
+          :key="category.id"
+          :url="`/pages/question-list/index?categoryId=${category.id}&categoryName=${encodeURIComponent(category.name)}`"
+          class="chip"
+        >
           {{ category.name }}
-        </view>
+        </navigator>
       </view>
     </view>
 
     <view class="section">
-      <view class="section__title">热门题目</view>
-      <view class="question-list">
+      <view class="section__title">最新题目</view>
+      <view v-if="questionStore.loading" class="section__state">题目加载中...</view>
+      <view v-else-if="questionStore.error" class="error-card">
+        <view class="error-card__text">{{ questionStore.error }}</view>
+        <button class="error-card__button" @click="loadHome">重试</button>
+      </view>
+      <view v-else-if="questionStore.questions.length === 0" class="section__state">暂无题目</view>
+      <view v-else class="question-list">
         <QuestionCard v-for="item in questionStore.questions" :key="item.id" :item="item" />
       </view>
     </view>
@@ -91,6 +105,10 @@ onMounted(async () => {
     flex-wrap: wrap;
     gap: 12rpx;
   }
+
+  &__state {
+    color: #86909c;
+  }
 }
 
 .chip {
@@ -104,5 +122,28 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
+}
+
+.error-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  padding: 28rpx;
+  border-radius: 20rpx;
+  background: #fff1f0;
+
+  &__text {
+    color: #cf1322;
+    line-height: 1.6;
+  }
+
+  &__button {
+    align-self: flex-start;
+    padding: 0 24rpx;
+    border: 1px solid #ffccc7;
+    border-radius: 999rpx;
+    background: #fff;
+    color: #cf1322;
+  }
 }
 </style>

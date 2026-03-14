@@ -8,9 +8,12 @@ export const useQuestionStore = defineStore('question', () => {
   const categories = ref<CategoryItem[]>([]);
   const questions = ref<QuestionItem[]>([]);
   const loading = ref(false);
+  const error = ref('');
 
   async function bootstrapHome() {
     loading.value = true;
+    error.value = '';
+
     try {
       const [categoryResult, questionResult] = await Promise.all([
         getCategories(),
@@ -18,6 +21,8 @@ export const useQuestionStore = defineStore('question', () => {
       ]);
       categories.value = categoryResult;
       questions.value = questionResult.list;
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '加载首页数据失败';
     } finally {
       loading.value = false;
     }
@@ -27,6 +32,7 @@ export const useQuestionStore = defineStore('question', () => {
     categories,
     questions,
     loading,
+    error,
     bootstrapHome,
   };
 });
