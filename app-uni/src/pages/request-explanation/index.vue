@@ -18,6 +18,10 @@ const pageError = ref('');
 
 const noteLength = computed(() => note.value.length);
 
+function resolveRequestSource() {
+  return typeof window !== 'undefined' ? 'H5' : 'MINIAPP';
+}
+
 async function loadQuestionTitle() {
   if (!questionId.value || title.value) {
     return;
@@ -46,11 +50,21 @@ async function submit() {
     const result = await createExplanationRequest({
       questionId: questionId.value,
       note: note.value || undefined,
-      source: 'MINIAPP',
+      source: resolveRequestSource(),
     });
 
+    const query = [
+      `mode=${result.mode}`,
+      `supportCount=${result.supportCount}`,
+      `questionId=${questionId.value}`,
+      `title=${encodeURIComponent(title.value)}`,
+      `syncStatus=${result.syncStatus}`,
+      `message=${encodeURIComponent(result.message)}`,
+      `githubIssueNumber=${result.githubIssueNumber || ''}`,
+    ].join('&');
+
     uni.redirectTo({
-      url: `/pages/submit-success/index?mode=${result.mode}&supportCount=${result.supportCount}&questionId=${questionId.value}&title=${encodeURIComponent(title.value)}`,
+      url: `/pages/submit-success/index?${query}`,
     });
   } catch (err) {
     uni.showToast({

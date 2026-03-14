@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import { getQuestionDetail, getQuestionRequestStatus } from '@/services/question';
 import type { QuestionDetail, QuestionRequestStatus } from '@/types/question';
@@ -14,6 +14,22 @@ const requestStatus = ref<QuestionRequestStatus | null>(null);
 const loading = ref(false);
 const error = ref('');
 const questionId = ref(0);
+
+const requestSummary = computed(() => {
+  if (!requestStatus.value) {
+    return '';
+  }
+
+  if (!requestStatus.value.hasRequest) {
+    return '当前还没有申请记录';
+  }
+
+  if (requestStatus.value.githubIssueNumber) {
+    return `已有 ${requestStatus.value.supportCount} 人申请，已同步到 GitHub Issue #${requestStatus.value.githubIssueNumber}`;
+  }
+
+  return `已有 ${requestStatus.value.supportCount} 人申请，当前先记录在本地，待后续同步 GitHub`;
+});
 
 async function loadDetail() {
   if (!questionId.value) {
@@ -95,13 +111,7 @@ onPullDownRefresh(async () => {
         <view v-if="question.hasExplanation" class="card__content">
           该题已具备系统讲解内容，当前不需要重复申请。
         </view>
-        <view v-else class="card__content">
-          {{
-            requestStatus.hasRequest
-              ? `已有 ${requestStatus.supportCount} 人申请`
-              : '当前还没有申请记录'
-          }}
-        </view>
+        <view v-else class="card__content">{{ requestSummary }}</view>
 
         <button
           v-if="!question.hasExplanation"

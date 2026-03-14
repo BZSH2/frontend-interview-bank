@@ -7,19 +7,39 @@ interface PageOptions {
   supportCount?: string;
   questionId?: string;
   title?: string;
+  syncStatus?: 'github_synced' | 'local_only';
+  message?: string;
+  githubIssueNumber?: string;
 }
 
 const mode = ref('CREATED');
 const supportCount = ref(1);
 const questionId = ref(0);
 const title = ref('');
+const syncStatus = ref<'github_synced' | 'local_only'>('local_only');
+const message = ref('');
+const githubIssueNumber = ref<number | null>(null);
 
 const resultText = computed(() => {
+  if (message.value) {
+    return message.value;
+  }
+
   if (mode.value === 'MERGED') {
     return `该题已有申请，已累计 ${supportCount.value} 人支持。`;
   }
 
   return '已创建新的讲解申请。';
+});
+
+const syncHint = computed(() => {
+  if (syncStatus.value === 'github_synced') {
+    return githubIssueNumber.value
+      ? `已同步到 GitHub Issue #${githubIssueNumber.value}`
+      : '已同步到 GitHub';
+  }
+
+  return '当前先记录在本地，后续可补同步到 GitHub';
 });
 
 function goToQuestionDetail() {
@@ -38,6 +58,11 @@ onLoad((options) => {
   supportCount.value = Number(pageOptions.supportCount || 1);
   questionId.value = Number(pageOptions.questionId || 0);
   title.value = pageOptions.title ? decodeURIComponent(pageOptions.title) : '';
+  syncStatus.value = pageOptions.syncStatus || 'local_only';
+  message.value = pageOptions.message ? decodeURIComponent(pageOptions.message) : '';
+  githubIssueNumber.value = pageOptions.githubIssueNumber
+    ? Number(pageOptions.githubIssueNumber)
+    : null;
 });
 </script>
 
@@ -47,6 +72,9 @@ onLoad((options) => {
       <view class="result-card__icon">🎉</view>
       <view class="result-card__title">提交成功</view>
       <view class="result-card__desc">{{ resultText }}</view>
+      <view class="result-card__status" :class="`result-card__status--${syncStatus}`">
+        {{ syncHint }}
+      </view>
       <view v-if="title" class="result-card__sub">{{ title }}</view>
 
       <view class="result-card__actions">
@@ -93,6 +121,22 @@ onLoad((options) => {
   &__desc {
     line-height: 1.6;
     color: #646a73;
+  }
+
+  &__status {
+    padding: 10rpx 20rpx;
+    border-radius: 999rpx;
+    font-size: 24rpx;
+
+    &--github_synced {
+      background: #e8ffea;
+      color: #237804;
+    }
+
+    &--local_only {
+      background: #fff7e6;
+      color: #d46b08;
+    }
   }
 
   &__sub {
