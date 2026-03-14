@@ -17,7 +17,8 @@
     "format": "prettier . --write",
     "typecheck": "pnpm -r typecheck",
     "check": "pnpm lint && pnpm typecheck",
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev:admin": "pnpm --filter admin-web dev"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",

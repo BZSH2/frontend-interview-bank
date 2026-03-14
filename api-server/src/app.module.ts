@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { AdminModule } from './modules/admin/admin.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ExplanationRequestsModule } from './modules/explanation-requests/explanation-requests.module';
 import { GithubModule } from './modules/github/github.module';
@@ -15,6 +16,7 @@ import { PrismaModule } from './prisma/prisma.module';
       envFilePath: ['.env.local', '.env'],
     }),
     PrismaModule,
+    AdminModule,
     GithubModule,
     HealthModule,
     CategoriesModule,

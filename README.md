@@ -19,6 +19,7 @@
 frontend-interview-bank/
 ├─ app-uni/
 ├─ api-server/
+├─ admin-web/
 ├─ docker-compose.yml
 ├─ .husky/
 ├─ .github/workflows/
@@ -88,6 +89,7 @@ pnpm --filter api-server sync:github-issues
 ```bash
 pnpm dev:api
 pnpm dev:uni:h5
+pnpm dev:admin
 ```
 
 ## 已提供的示例数据
@@ -111,6 +113,7 @@ pnpm --filter api-server prisma:push
 pnpm --filter api-server prisma:seed
 pnpm --filter api-server build
 pnpm --filter app-uni build:h5
+pnpm --filter admin-web build
 ```
 
 ## 提交规范
