@@ -60,6 +60,18 @@ const requestFilters = reactive({
   syncStatus: '',
 });
 
+const questionPager = reactive({
+  page: 1,
+  pageSize: 10,
+  total: 0,
+});
+
+const requestPager = reactive({
+  page: 1,
+  pageSize: 10,
+  total: 0,
+});
+
 const editorMode = ref<'create' | 'edit'>('create');
 const selectedQuestionId = ref<number | null>(null);
 const questionForm = reactive({
@@ -193,13 +205,14 @@ async function loadQuestions() {
   loadingQuestions.value = true;
   try {
     const result = await getAdminQuestions({
-      page: 1,
-      pageSize: 20,
+      page: questionPager.page,
+      pageSize: questionPager.pageSize,
       keyword: questionFilters.keyword,
       categoryId: questionFilters.categoryId,
       hasExplanation: questionFilters.hasExplanation,
     });
     questions.value = result.list;
+    questionPager.total = result.total;
   } catch (error) {
     setNotice('error', error instanceof Error ? error.message : '题目列表加载失败');
   } finally {
@@ -211,13 +224,14 @@ async function loadRequests() {
   loadingRequests.value = true;
   try {
     const result = await getAdminExplanationRequests({
-      page: 1,
-      pageSize: 20,
+      page: requestPager.page,
+      pageSize: requestPager.pageSize,
       keyword: requestFilters.keyword,
       status: requestFilters.status,
       syncStatus: requestFilters.syncStatus,
     });
     requests.value = result.list;
+    requestPager.total = result.total;
   } catch (error) {
     setNotice('error', error instanceof Error ? error.message : '申请列表加载失败');
   } finally {
@@ -233,6 +247,36 @@ async function bootstrap() {
     loadQuestions(),
     loadRequests(),
   ]);
+}
+
+function applyQuestionFilters() {
+  questionPager.page = 1;
+  void loadQuestions();
+}
+
+function changeQuestionPage(delta: number) {
+  const nextPage = questionPager.page + delta;
+  const maxPage = Math.max(1, Math.ceil(questionPager.total / questionPager.pageSize));
+  if (nextPage < 1 || nextPage > maxPage) {
+    return;
+  }
+  questionPager.page = nextPage;
+  void loadQuestions();
+}
+
+function applyRequestFilters() {
+  requestPager.page = 1;
+  void loadRequests();
+}
+
+function changeRequestPage(delta: number) {
+  const nextPage = requestPager.page + delta;
+  const maxPage = Math.max(1, Math.ceil(requestPager.total / requestPager.pageSize));
+  if (nextPage < 1 || nextPage > maxPage) {
+    return;
+  }
+  requestPager.page = nextPage;
+  void loadRequests();
 }
 
 function openCreateQuestion() {
@@ -438,7 +482,34 @@ onMounted(async () => {
               <option value="true">已有讲解</option>
               <option value="false">暂无讲解</option>
             </select>
-            <button class="primary-button" @click="loadQuestions">筛选</button>
+            <button class="primary-button" @click="applyQuestionFilters">筛选</button>
+          </div>
+
+          <div class="pager-bar">
+            <span
+              >第 {{ questionPager.page }} /
+              {{ Math.max(1, Math.ceil(questionPager.total / questionPager.pageSize)) }} 页，共
+              {{ questionPager.total }} 条</span
+            >
+            <div class="pager-bar__actions">
+              <button
+                class="ghost-button"
+                :disabled="questionPager.page <= 1"
+                @click="changeQuestionPage(-1)"
+              >
+                上一页
+              </button>
+              <button
+                class="ghost-button"
+                :disabled="
+                  questionPager.page >=
+                  Math.max(1, Math.ceil(questionPager.total / questionPager.pageSize))
+                "
+                @click="changeQuestionPage(1)"
+              >
+                下一页
+              </button>
+            </div>
           </div>
 
           <div class="table-wrap">
@@ -606,7 +677,7 @@ onMounted(async () => {
             <option value="">全部同步状态</option>
             <option v-for="item in syncStatusOptions" :key="item" :value="item">{{ item }}</option>
           </select>
-          <button class="primary-button" @click="loadRequests">筛选</button>
+          <button class="primary-button" @click="applyRequestFilters">筛选</button>
         </div>
 
         <div class="table-wrap">
@@ -696,6 +767,33 @@ onMounted(async () => {
           <div class="card__header">
             <h2>分类列表</h2>
             <button class="ghost-button" @click="loadAdminCategories">刷新</button>
+          </div>
+
+          <div class="pager-bar">
+            <span
+              >第 {{ requestPager.page }} /
+              {{ Math.max(1, Math.ceil(requestPager.total / requestPager.pageSize)) }} 页，共
+              {{ requestPager.total }} 条</span
+            >
+            <div class="pager-bar__actions">
+              <button
+                class="ghost-button"
+                :disabled="requestPager.page <= 1"
+                @click="changeRequestPage(-1)"
+              >
+                上一页
+              </button>
+              <button
+                class="ghost-button"
+                :disabled="
+                  requestPager.page >=
+                  Math.max(1, Math.ceil(requestPager.total / requestPager.pageSize))
+                "
+                @click="changeRequestPage(1)"
+              >
+                下一页
+              </button>
+            </div>
           </div>
 
           <div class="table-wrap">
