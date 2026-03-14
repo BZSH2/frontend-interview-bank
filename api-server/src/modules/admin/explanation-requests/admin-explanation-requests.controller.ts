@@ -1,9 +1,21 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 
+import { AdminAuthGuard } from '../admin-auth.guard';
 import { AdminExplanationRequestsService } from './admin-explanation-requests.service';
 import { AdminQueryExplanationRequestsDto } from './dto/admin-query-explanation-requests.dto';
 import { AdminUpdateExplanationRequestStatusDto } from './dto/admin-update-explanation-request-status.dto';
 
+@UseGuards(AdminAuthGuard)
 @Controller('admin/explanation-requests')
 export class AdminExplanationRequestsController {
   constructor(private readonly adminExplanationRequestsService: AdminExplanationRequestsService) {}

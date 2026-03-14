@@ -60,9 +60,11 @@ docker compose up -d mysql
 ```bash
 cp api-server/.env.example api-server/.env
 cp app-uni/.env.example app-uni/.env
+cp admin-web/.env.example admin-web/.env
 ```
 
 > `GITHUB_TOKEN` 可先留空；这样本地仍可跑通，只是用户点击“申请新增讲解”时不会自动创建 GitHub Issue。
+> 如果你想保护后台接口，可在 `api-server/.env` 里设置 `ADMIN_TOKEN`，并在 `admin-web/.env` 里设置同样的 `VITE_ADMIN_TOKEN`。
 
 ### 4) 初始化数据库并注入示例数据
 

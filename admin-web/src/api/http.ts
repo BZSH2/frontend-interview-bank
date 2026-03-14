@@ -6,6 +6,7 @@ interface WrappedResponse<T> {
 }
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+const ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || '';
 
 function buildQuery(params?: Record<string, unknown>) {
   if (!params) {
@@ -37,6 +38,7 @@ export async function request<T>(
     method: options?.method || 'GET',
     headers: {
       'Content-Type': 'application/json',
+      ...(ADMIN_TOKEN ? { 'x-admin-token': ADMIN_TOKEN } : {}),
     },
     body: options?.body ? JSON.stringify(options.body) : undefined,
   });
@@ -46,6 +48,11 @@ export async function request<T>(
   if (!response.ok) {
     const rawMessage = 'message' in payload ? payload.message : '请求失败';
     const message = Array.isArray(rawMessage) ? rawMessage.join('；') : rawMessage;
+
+    if (response.status === 401) {
+      throw new Error(message || '后台鉴权失败，请检查 ADMIN_TOKEN / VITE_ADMIN_TOKEN 配置');
+    }
+
     throw new Error(message || `请求失败（${response.status}）`);
   }
 

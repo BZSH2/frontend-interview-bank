@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
 
+import { AdminAuthGuard } from '../admin-auth.guard';
 import { AdminCategoriesService } from './admin-categories.service';
 import { AdminCreateCategoryDto } from './dto/admin-create-category.dto';
 import { AdminUpdateCategoryDto } from './dto/admin-update-category.dto';
 
+@UseGuards(AdminAuthGuard)
 @Controller('admin/categories')
 export class AdminCategoriesController {
   constructor(private readonly adminCategoriesService: AdminCategoriesService) {}

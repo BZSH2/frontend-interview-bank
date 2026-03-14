@@ -1,10 +1,22 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 
+import { AdminAuthGuard } from '../admin-auth.guard';
 import { AdminQuestionsService } from './admin-questions.service';
 import { AdminCreateQuestionDto } from './dto/admin-create-question.dto';
 import { AdminQueryQuestionsDto } from './dto/admin-query-questions.dto';
 import { AdminUpdateQuestionDto } from './dto/admin-update-question.dto';
 
+@UseGuards(AdminAuthGuard)
 @Controller('admin/questions')
 export class AdminQuestionsController {
   constructor(private readonly adminQuestionsService: AdminQuestionsService) {}
