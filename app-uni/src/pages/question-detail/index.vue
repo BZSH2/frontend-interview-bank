@@ -31,6 +31,19 @@ const requestSummary = computed(() => {
   return `已有 ${requestStatus.value.supportCount} 人申请，当前先记录在本地，待后续同步 GitHub`;
 });
 
+const explanationTimeText = computed(() => {
+  if (!question.value?.explanationUpdatedAt) {
+    return '';
+  }
+
+  const date = new Date(question.value.explanationUpdatedAt);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return `最近更新：${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+});
+
 async function loadDetail() {
   if (!questionId.value) {
     error.value = '缺少题目 ID';
@@ -105,6 +118,16 @@ onPullDownRefresh(async () => {
         <view class="card__content">{{ question.answer || '暂未补充' }}</view>
       </view>
 
+      <view v-if="question.explanationContent" class="card card--highlight">
+        <view class="card__section-header">
+          <view class="card__section-title">系统讲解</view>
+          <view v-if="explanationTimeText" class="card__section-time">{{
+            explanationTimeText
+          }}</view>
+        </view>
+        <view class="card__content">{{ question.explanationContent }}</view>
+      </view>
+
       <view v-if="requestStatus" class="card">
         <view class="card__section-title">讲解申请状态</view>
 
@@ -145,6 +168,11 @@ onPullDownRefresh(async () => {
 }
 
 .card {
+  &--highlight {
+    border: 1px solid #d6e4ff;
+    background: #f8fbff;
+  }
+
   &__title {
     font-size: 34rpx;
     font-weight: 700;
@@ -171,9 +199,21 @@ onPullDownRefresh(async () => {
     font-size: 22rpx;
   }
 
+  &__section-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16rpx;
+    align-items: center;
+  }
+
   &__section-title {
     font-size: 28rpx;
     font-weight: 600;
+  }
+
+  &__section-time {
+    color: #86909c;
+    font-size: 22rpx;
   }
 
   &__content {

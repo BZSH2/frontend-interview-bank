@@ -15,10 +15,7 @@ export class QuestionsService {
       ...(query.difficulty ? { difficulty: query.difficulty } : {}),
       ...(query.keyword
         ? {
-            OR: [
-              { title: { contains: query.keyword } },
-              { summary: { contains: query.keyword } },
-            ],
+            OR: [{ title: { contains: query.keyword } }, { summary: { contains: query.keyword } }],
           }
         : {}),
     };
@@ -67,6 +64,12 @@ export class QuestionsService {
         difficulty: true,
         tags: true,
         hasExplanation: true,
+        explanation: {
+          select: {
+            content: true,
+            updatedAt: true,
+          },
+        },
         category: {
           select: {
             id: true,
@@ -80,7 +83,11 @@ export class QuestionsService {
       throw new NotFoundException('题目不存在');
     }
 
-    return question;
+    return {
+      ...question,
+      explanationContent: question.explanation?.content || null,
+      explanationUpdatedAt: question.explanation?.updatedAt || null,
+    };
   }
 
   async getRequestStatus(id: number) {

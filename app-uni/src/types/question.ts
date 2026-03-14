@@ -22,6 +22,8 @@ export interface QuestionItem {
 export interface QuestionDetail extends QuestionItem {
   content: string;
   answer?: string | null;
+  explanationContent?: string | null;
+  explanationUpdatedAt?: string | null;
 }
 
 export interface QuestionRequestStatus {
