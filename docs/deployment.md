@@ -104,3 +104,19 @@ pnpm --filter admin-web build
 - Node 进程只监听内网或 `127.0.0.1`
 - 通过 Nginx 反代 `/api`
 - 管理后台建议再加一层基础认证或 IP 限制
+
+## 四、对齐 nest-admin 风格的部署方式
+
+如果你希望和当前服务器上的 `nest-admin` 保持一致，可以直接参考：
+
+- `api-server/Dockerfile`
+- `app-uni/Dockerfile`
+- `admin-web/Dockerfile`
+- `deploy/docker/docker-compose.nest-admin-style.yml`
+
+这是典型的：
+
+- 后端 Node 镜像
+- 前台/后台 Nginx 静态镜像
+- Docker Compose 编排
+- `restart: unless-stopped` 常驻

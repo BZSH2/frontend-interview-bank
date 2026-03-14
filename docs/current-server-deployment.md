@@ -104,3 +104,31 @@ pnpm smoke:test
 ```
 
 确认没问题后，再切到 systemd 常驻。
+
+## 六、如果要对齐当前 `nest-admin` 的部署风格
+
+当前服务器上的 `nest-admin` / `vue-admin` 本质是：
+
+- 后端：Node 容器
+- 前端：Nginx 静态容器
+- 都由 Docker 以 `restart: unless-stopped` 方式托管
+
+本项目已经补了同风格示例：
+
+- `api-server/Dockerfile`
+- `app-uni/Dockerfile`
+- `admin-web/Dockerfile`
+- `deploy/docker/docker-compose.nest-admin-style.yml`
+
+推荐端口：
+
+- API：`36000`
+- 用户端：`36080`
+- 后台：`36081`
+
+这样可以和你现有：
+
+- `nest-admin`（35000）
+- `vue-admin`（80）
+
+并存，不冲突。
