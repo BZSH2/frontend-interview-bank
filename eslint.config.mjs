@@ -71,7 +71,7 @@ export default [
     },
   },
   {
-    files: ['api-server/**/*.{js,ts}'],
+    files: ['api-server/**/*.{js,ts}', 'scripts/**/*.{js,mjs,cjs}'],
     languageOptions: {
       globals: {
         ...globals.node,

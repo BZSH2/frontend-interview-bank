@@ -22,7 +22,8 @@
     "bootstrap:dev": "sh scripts/bootstrap-dev.sh",
     "build:all": "sh scripts/build-all.sh",
     "smoke:test": "sh scripts/smoke-test.sh",
-    "preview:all": "sh scripts/run-preview.sh"
+    "preview:all": "sh scripts/run-preview.sh",
+    "serve:static": "node scripts/serve-static.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",

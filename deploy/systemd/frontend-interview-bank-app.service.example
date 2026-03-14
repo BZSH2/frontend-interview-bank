@@ -1,0 +1,14 @@
+[Unit]
+Description=Frontend Interview Bank H5 App Static Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/.openclaw/workspace/frontend-interview-bank
+ExecStart=/usr/local/bin/node scripts/serve-static.mjs --root /root/.openclaw/workspace/frontend-interview-bank/app-uni/dist/build/h5 --port 4173
+Restart=always
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target
