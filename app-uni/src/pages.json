@@ -1,0 +1,40 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "前端面试题库"
+      }
+    },
+    {
+      "path": "pages/question-list/index",
+      "style": {
+        "navigationBarTitleText": "题库列表"
+      }
+    },
+    {
+      "path": "pages/question-detail/index",
+      "style": {
+        "navigationBarTitleText": "题目详情"
+      }
+    },
+    {
+      "path": "pages/request-explanation/index",
+      "style": {
+        "navigationBarTitleText": "申请新增讲解"
+      }
+    },
+    {
+      "path": "pages/submit-success/index",
+      "style": {
+        "navigationBarTitleText": "提交成功"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "前端面试题库",
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundColor": "#f5f7fa"
+  }
+}

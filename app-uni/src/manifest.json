@@ -1,0 +1,17 @@
+{
+  "name": "前端面试题库",
+  "appid": "__UNI__INTERVIEW_BANK__",
+  "description": "面向前端开发者的题库与讲解申请平台",
+  "versionName": "0.1.0",
+  "versionCode": 100,
+  "transformPx": false,
+  "h5": {
+    "title": "前端面试题库"
+  },
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false
+    }
+  }
+}

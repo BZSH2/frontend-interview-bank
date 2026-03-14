@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum QuestionStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ExplanationStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum RequestStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+  CLOSED
+}
+
+enum SourcePlatform {
+  MINIAPP
+  H5
+  PC
+  ADMIN
+}
+
+model Category {
+  id        Int        @id @default(autoincrement())
+  name      String     @db.VarChar(100)
+  sort      Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  questions Question[]
+}
+
+model Question {
+  id                 Int                  @id @default(autoincrement())
+  categoryId         Int
+  title              String               @db.VarChar(255)
+  summary            String?              @db.VarChar(500)
+  content            String               @db.LongText
+  answer             String?              @db.LongText
+  difficulty         Difficulty           @default(EASY)
+  tags               Json?
+  hasExplanation     Boolean              @default(false)
+  status             QuestionStatus       @default(PUBLISHED)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  category           Category             @relation(fields: [categoryId], references: [id])
+  explanation        Explanation?
+  explanationRequest ExplanationRequest?
+  requestLogs        ExplanationRequestLog[]
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([difficulty])
+}
+
+model Explanation {
+  id         Int               @id @default(autoincrement())
+  questionId Int               @unique
+  content    String            @db.LongText
+  status     ExplanationStatus @default(PUBLISHED)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  question Question @relation(fields: [questionId], references: [id])
+}
+
+model ExplanationRequest {
+  id                Int            @id @default(autoincrement())
+  questionId        Int            @unique
+  githubIssueNumber Int?
+  githubIssueId     String?        @db.VarChar(100)
+  note              String?        @db.VarChar(1000)
+  source            SourcePlatform @default(MINIAPP)
+  status            RequestStatus  @default(PENDING)
+  supportCount      Int            @default(1)
+  lastSubmittedAt   DateTime       @default(now())
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  question Question                @relation(fields: [questionId], references: [id])
+  logs     ExplanationRequestLog[]
+
+  @@index([status])
+  @@index([githubIssueNumber])
+}
+
+model ExplanationRequestLog {
+  id         Int            @id @default(autoincrement())
+  requestId  Int?
+  questionId Int
+  userKey    String?        @db.VarChar(100)
+  ip         String?        @db.VarChar(64)
+  note       String?        @db.VarChar(1000)
+  source     SourcePlatform @default(MINIAPP)
+  createdAt  DateTime       @default(now())
+
+  request  ExplanationRequest? @relation(fields: [requestId], references: [id])
+  question Question            @relation(fields: [questionId], references: [id])
+
+  @@index([questionId, createdAt])
+  @@index([userKey, createdAt])
+}

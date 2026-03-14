@@ -1,0 +1,120 @@
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+
+import { GithubService } from '../github/github.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { CreateExplanationRequestDto } from './dto/create-explanation-request.dto';
+
+interface RequestMeta {
+  userKey?: string;
+  ip?: string;
+}
+
+@Injectable()
+export class ExplanationRequestsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly githubService: GithubService,
+  ) {}
+
+  async create(dto: CreateExplanationRequestDto, meta: RequestMeta) {
+    const question = await this.prisma.question.findUnique({
+      where: { id: dto.questionId },
+      select: {
+        id: true,
+        title: true,
+        hasExplanation: true,
+        explanationRequest: {
+          select: {
+            id: true,
+            supportCount: true,
+            githubIssueNumber: true,
+          },
+        },
+      },
+    });
+
+    if (!question) {
+      throw new NotFoundException('题目不存在');
+    }
+
+    if (question.hasExplanation) {
+      throw new BadRequestException('该题已有讲解，无需重复申请');
+    }
+
+    if (question.explanationRequest) {
+      const supportCount = question.explanationRequest.supportCount + 1;
+
+      await this.prisma.$transaction([
+        this.prisma.explanationRequest.update({
+          where: { id: question.explanationRequest.id },
+          data: {
+            supportCount,
+            lastSubmittedAt: new Date(),
+            note: dto.note || undefined,
+          },
+        }),
+        this.prisma.explanationRequestLog.create({
+          data: {
+            requestId: question.explanationRequest.id,
+            questionId: dto.questionId,
+            userKey: meta.userKey,
+            ip: meta.ip,
+            note: dto.note,
+            source: dto.source,
+          },
+        }),
+      ]);
+
+      if (question.explanationRequest.githubIssueNumber) {
+        await this.githubService.createSupportComment(
+          question.explanationRequest.githubIssueNumber,
+          supportCount,
+        );
+      }
+
+      return {
+        success: true,
+        mode: 'MERGED',
+        message: '该题已有讲解申请，已为你登记支持',
+        githubIssueNumber: question.explanationRequest.githubIssueNumber || null,
+        supportCount,
+      };
+    }
+
+    const issue = await this.githubService.createExplanationIssue({
+      questionId: question.id,
+      title: question.title,
+      note: dto.note,
+      source: dto.source,
+    });
+
+    const request = await this.prisma.explanationRequest.create({
+      data: {
+        questionId: question.id,
+        githubIssueNumber: issue?.issueNumber,
+        githubIssueId: issue?.issueId,
+        note: dto.note,
+        source: dto.source,
+        status: 'PENDING',
+        supportCount: 1,
+        logs: {
+          create: {
+            questionId: question.id,
+            userKey: meta.userKey,
+            ip: meta.ip,
+            note: dto.note,
+            source: dto.source,
+          },
+        },
+      },
+    });
+
+    return {
+      success: true,
+      mode: 'CREATED',
+      message: '已创建新的讲解申请',
+      githubIssueNumber: request.githubIssueNumber || null,
+      supportCount: request.supportCount,
+    };
+  }
+}
