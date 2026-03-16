@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/root/.openclaw/workspace/frontend-interview-bank
-ExecStart=/usr/local/bin/node scripts/serve-static.mjs --root /root/.openclaw/workspace/frontend-interview-bank/app-uni/dist/build/h5 --port 4173
+WorkingDirectory=/var/www/frontend-interview-bank/current
+ExecStart=/usr/local/bin/node scripts/serve-static.mjs --root /var/www/frontend-interview-bank/current/app-uni/dist/build/h5 --port 4173
 Restart=always
 RestartSec=3
 User=root

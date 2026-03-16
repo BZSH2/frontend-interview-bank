@@ -27,6 +27,8 @@ pnpm bootstrap:dev
 pnpm build:all
 ```
 
+> 如果后续改用 GitHub Actions 自动部署，推荐统一切到 `/var/www/frontend-interview-bank/current` 作为目标目录，并使用 `docs/automated-deployment.md` 里的 SSH + systemd 方案。
+
 ## 二、手动启动验证
 
 ### 1. 启动 API

@@ -2,20 +2,22 @@
 
 ## 推荐部署形态
 
-适合一台 Vultr / 云服务器的最小部署方式：
+当前仓库已经准备好一套适合单台服务器的轻量部署方案：
 
-- `api-server`：Node 进程托管（推荐 PM2）
-- `admin-web`：构建后由 Nginx 托管静态文件
-- `app-uni` H5：构建后由 Nginx 托管静态文件
-- `mysql`：可继续用 Docker Compose，或换成托管数据库
+- `api-server`：Node 进程常驻（推荐 systemd / PM2）
+- `admin-web`：构建后静态托管
+- `app-uni` H5：构建后静态托管
+- `mysql`：宿主机安装或 Docker Compose 托管
+
+如果你想直接接上自动部署，请同时阅读：`docs/automated-deployment.md`。
 
 ## 环境要求
 
 - Node.js 20+
 - pnpm 10+
 - MySQL 8+
-- Nginx（推荐）
-- PM2（推荐）
+- systemd 或 PM2
+- Nginx（推荐，但非强依赖）
 
 ## 一、部署 API
 
@@ -42,6 +44,11 @@ pnpm install --no-frozen-lockfile
 
 ```bash
 pnpm --filter api-server prisma:push
+```
+
+如果是演示环境或首次初始化，也可以再执行：
+
+```bash
 pnpm --filter api-server prisma:seed
 ```
 
@@ -51,7 +58,13 @@ pnpm --filter api-server prisma:seed
 pnpm --filter api-server build
 ```
 
-### 5. 使用 PM2 托管
+### 5. 托管 API
+
+#### 方案 A：systemd（推荐）
+
+参考：`deploy/systemd/frontend-interview-bank-api.service.example`
+
+#### 方案 B：PM2
 
 ```bash
 pm2 start deploy/pm2/ecosystem.config.cjs --only api-server
@@ -72,14 +85,30 @@ pnpm --filter admin-web build
 - 用户端：`app-uni/dist/build/h5`
 - 后台：`admin-web/dist`
 
-### Nginx 推荐挂载
+### 托管方式
 
-- 用户端挂到：`/var/www/frontend-interview-bank/app`
-- 后台挂到：`/var/www/frontend-interview-bank/admin`
+#### 方案 A：Nginx
 
-示例配置见：
+推荐挂载：
 
-- `deploy/nginx/frontend-interview-bank.conf.example`
+- 用户端：`/var/www/frontend-interview-bank/app`
+- 后台：`/var/www/frontend-interview-bank/admin`
+
+示例配置见：`deploy/nginx/frontend-interview-bank.conf.example`
+
+#### 方案 B：Node 静态服务
+
+仓库自带 `scripts/serve-static.mjs`，也可直接用：
+
+```bash
+node scripts/serve-static.mjs --root app-uni/dist/build/h5 --port 4173
+node scripts/serve-static.mjs --root admin-web/dist --port 4174
+```
+
+对应 systemd 示例：
+
+- `deploy/systemd/frontend-interview-bank-app.service.example`
+- `deploy/systemd/frontend-interview-bank-admin.service.example`
 
 ## 三、安全建议
 
@@ -98,28 +127,38 @@ pnpm --filter admin-web build
 - 不要把 PAT 提交进仓库
 - 如果 token 曾经暴露，立刻 rotate
 
-### 3. 生产环境
+### 3. 生产建议
 
 - 使用 HTTPS
 - Node 进程只监听内网或 `127.0.0.1`
 - 通过 Nginx 反代 `/api`
 - 管理后台建议再加一层基础认证或 IP 限制
 
-## 四、对齐 nest-admin 风格的部署方式
+## 四、自动部署方案
 
-如果你希望和当前服务器上的 `nest-admin` 保持一致，可以直接参考：
+仓库已提供：
+
+- `scripts/deploy-remote.sh`
+- `.github/workflows/deploy.yml`
+
+适合这种流程：
+
+1. GitHub Actions 在 runner 上先 `pnpm build:all`
+2. rsync 仓库到远程服务器
+3. 远程服务器执行 `deploy-remote.sh`
+4. 脚本完成依赖安装、数据库同步、构建、systemd 重启、烟雾测试
+
+详见：`docs/automated-deployment.md`
+
+## 五、Docker / 容器化方式
+
+如果你希望和现有容器化项目风格保持一致，可以参考：
 
 - `api-server/Dockerfile`
 - `app-uni/Dockerfile`
 - `admin-web/Dockerfile`
 - `deploy/docker/docker-compose.nest-admin-style.yml`
-
-这是典型的：
-
-- 后端 Node 镜像
-- 前台/后台 Nginx 静态镜像
-- Docker Compose 编排
-- `restart: unless-stopped` 常驻
+- `deploy/docker/.env.nest-admin-style.example`
 
 ### Docker 构建时的前端环境变量
 
@@ -129,6 +168,4 @@ pnpm --filter admin-web build
 - `ADMIN_WEB_API_BASE_URL`
 - `ADMIN_WEB_TOKEN`（如需）
 
-参考：`deploy/docker/.env.nest-admin-style.example`
-
-> 说明：在 `docker-compose.nest-admin-style.yml` 中，容器内的 API 会自动覆盖 `DATABASE_URL`，改为连接 `interview-bank-mysql:3306`，不会直接使用宿主机的 `127.0.0.1:33306`。
+> 在 `docker-compose.nest-admin-style.yml` 中，容器内 API 会自动覆盖 `DATABASE_URL`，改为连接 `interview-bank-mysql:3306`。

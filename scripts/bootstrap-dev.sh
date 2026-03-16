@@ -13,6 +13,14 @@ echo '[2/5] prepare env files'
 [ -f admin-web/.env ] || cp admin-web/.env.example admin-web/.env
 
 echo '[3/5] start mysql'
+if ! command -v docker >/dev/null 2>&1; then
+  echo 'docker not found. Please install Docker Desktop (or provide your own MySQL and update api-server/.env DATABASE_URL).' >&2
+  echo 'then run:' >&2
+  echo '  pnpm --filter api-server prisma:push' >&2
+  echo '  pnpm --filter api-server prisma:seed' >&2
+  exit 1
+fi
+
 docker compose up -d mysql
 
 echo '[4/5] wait mysql health'

@@ -4,8 +4,8 @@ After=network.target docker.service
 
 [Service]
 Type=simple
-WorkingDirectory=/root/.openclaw/workspace/frontend-interview-bank/api-server
-EnvironmentFile=/root/.openclaw/workspace/frontend-interview-bank/api-server/.env
+WorkingDirectory=/var/www/frontend-interview-bank/current/api-server
+EnvironmentFile=/var/www/frontend-interview-bank/current/api-server/.env
 ExecStart=/usr/local/bin/node dist/main.js
 Restart=always
 RestartSec=3

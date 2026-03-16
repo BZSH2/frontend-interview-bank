@@ -1,0 +1,109 @@
+name: deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      run_db_seed:
+        description: 'Seed demo data after prisma:push'
+        required: false
+        default: false
+        type: boolean
+      install_systemd_units:
+        description: 'Install/update example systemd service files before restart'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: ${{ secrets.DEPLOY_HOST != '' && secrets.DEPLOY_USER != '' && secrets.DEPLOY_SSH_KEY != '' }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/var/www/frontend-interview-bank' }}
+      API_PORT: ${{ secrets.API_PORT || '3000' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify repo builds before deploy
+        run: pnpm build:all
+
+      - name: Resolve deploy flags
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.run_db_seed }}" = "true" ]; then
+            echo 'RUN_DB_SEED=true' >> "$GITHUB_ENV"
+          else
+            echo 'RUN_DB_SEED=false' >> "$GITHUB_ENV"
+          fi
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.install_systemd_units }}" = "true" ]; then
+            echo 'INSTALL_SYSTEMD_UNITS=true' >> "$GITHUB_ENV"
+          else
+            echo 'INSTALL_SYSTEMD_UNITS=false' >> "$GITHUB_ENV"
+          fi
+
+      - name: Validate deploy secrets
+        run: |
+          test -n "$DEPLOY_HOST" || (echo 'Missing secret DEPLOY_HOST' >&2; exit 1)
+          test -n "$DEPLOY_USER" || (echo 'Missing secret DEPLOY_USER' >&2; exit 1)
+          test -n "${{ secrets.DEPLOY_SSH_KEY }}" || (echo 'Missing secret DEPLOY_SSH_KEY' >&2; exit 1)
+
+      - name: Start ssh-agent and add key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add deploy host to known_hosts
+        run: ssh-keyscan -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Ensure remote release directory exists
+        run: |
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "mkdir -p '$DEPLOY_PATH/current'"
+
+      - name: Sync repository to server
+        run: |
+          rsync -az --delete \
+            --exclude '.git' \
+            --exclude 'node_modules' \
+            --exclude 'admin-web/dist' \
+            --exclude 'app-uni/dist' \
+            --exclude 'api-server/dist' \
+            --exclude 'api-server/.env' \
+            --exclude 'admin-web/.env' \
+            --exclude 'app-uni/.env' \
+            -e "ssh -p $DEPLOY_PORT" \
+            ./ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/current/"
+
+      - name: Run remote deploy script
+        run: |
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd '$DEPLOY_PATH/current' && chmod +x scripts/deploy-remote.sh && DEPLOY_ROOT='$DEPLOY_PATH' API_PORT='$API_PORT' RUN_DB_SEED='$RUN_DB_SEED' INSTALL_SYSTEMD_UNITS='$INSTALL_SYSTEMD_UNITS' RUN_SMOKE_TEST='true' bash scripts/deploy-remote.sh"

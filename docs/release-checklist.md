@@ -49,7 +49,16 @@
 - [ ] 确认不会把测试数据同步到公开仓库
 - [ ] 正式同步前已清理不必要的演示申请
 
-## 六、安全检查
+## 六、自动化 / 部署检查（如启用 GitHub Actions 自动部署）
+
+- [ ] `.github/workflows/ci.yml` 运行通过
+- [ ] `.github/workflows/deploy.yml` 已按需启用（配置 secrets 后会自动运行）
+- [ ] GitHub Secrets 已配置：`DEPLOY_HOST` / `DEPLOY_USER` / `DEPLOY_SSH_KEY`
+- [ ] 远程机器已准备好 `.env`（自动部署不会覆盖 `.env`）
+- [ ] 远程机器已验证可执行 `scripts/deploy-remote.sh`
+- [ ] 远程 smoke test：`pnpm smoke:test` 可通过（必要时配置 `ADMIN_TOKEN`）
+
+## 七、安全检查
 
 - [ ] 已启用 HTTPS
 - [ ] 后台接口已启用 `ADMIN_TOKEN`
