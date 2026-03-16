@@ -155,3 +155,6 @@ git commit -m "chore(repo): add commitlint and husky"
 
 - 对齐 `nest-admin` 风格的 Docker 部署：`deploy/docker/docker-compose.nest-admin-style.yml`
 - Docker 环境变量示例：`deploy/docker/.env.nest-admin-style.example`
+
+- 免重建依赖的运行时 compose：`deploy/docker/docker-compose.nest-admin-style.runtime.yml`
+- 运行时产物检查脚本：`scripts/check-runtime-artifacts.sh`

@@ -141,10 +141,13 @@ pnpm smoke:test
 cp deploy/docker/.env.nest-admin-style.example deploy/docker/.env.nest-admin-style
 ```
 
-按当前服务器实际 IP 改这几个值：
+默认建议保持这几个值为 `/api`：
 
 - `APP_H5_API_BASE_URL`
 - `ADMIN_WEB_API_BASE_URL`
+
+只有在“前台/后台和 API 不走同域反代、而是分域名或分机器部署”时，才需要改成完整地址。
+
 - `ADMIN_WEB_TOKEN`（可选）
 
 然后执行：
@@ -171,3 +174,32 @@ docker compose \
 产生冲突。
 
 > 说明：在 `docker-compose.nest-admin-style.yml` 中，容器内的 API 会自动覆盖 `DATABASE_URL`，改为连接 `interview-bank-mysql:3306`，不会直接使用宿主机的 `127.0.0.1:33306`。
+
+> 现在 Docker 方案里，前台和后台容器会在容器内通过 Nginx 反代 `/api` 到 `interview-bank-api`，因此不需要提前知道服务器公网 IP。
+
+- 免重建依赖的运行时 compose：`deploy/docker/docker-compose.nest-admin-style.runtime.yml`
+- 运行时产物检查脚本：`scripts/check-runtime-artifacts.sh`
+
+### 八、如果前端产物在本地构建、服务器只负责运行
+
+这更符合当前协作分工：
+
+- 本地 OpenClaw：安装依赖、构建、smoke test
+- 当前服务器：接收 dist 产物、启动容器、做部署验收
+
+服务器侧在收到本地产物后，先执行：
+
+```bash
+cd /root/.openclaw/workspace/frontend-interview-bank
+sh scripts/check-runtime-artifacts.sh
+```
+
+确认产物里没有残留 `localhost` API 地址，再执行：
+
+```bash
+docker compose \
+  --env-file deploy/docker/.env.nest-admin-style \
+  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml up -d
+```
+
+这样就不需要在当前服务器重新跑 `pnpm i` / 前端构建。

@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM docker.m.daocloud.io/library/node:20-alpine AS builder
 WORKDIR /app
 
 COPY package.json pnpm-workspace.yaml .
@@ -7,13 +7,15 @@ COPY api-server/package.json ./api-server/package.json
 COPY app-uni/package.json ./app-uni/package.json
 COPY admin-web/package.json ./admin-web/package.json
 
-RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
-RUN pnpm install --no-frozen-lockfile
+RUN npm config set registry https://registry.npmmirror.com \
+  && npm install -g pnpm@10.32.1
+RUN pnpm config set registry https://registry.npmmirror.com \
+  && pnpm install --no-frozen-lockfile
 
 COPY . .
 RUN pnpm --filter api-server build
 
-FROM node:20-alpine AS runner
+FROM docker.m.daocloud.io/library/node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 

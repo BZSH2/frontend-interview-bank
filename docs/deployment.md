@@ -132,3 +132,8 @@ pnpm --filter admin-web build
 参考：`deploy/docker/.env.nest-admin-style.example`
 
 > 说明：在 `docker-compose.nest-admin-style.yml` 中，容器内的 API 会自动覆盖 `DATABASE_URL`，改为连接 `interview-bank-mysql:3306`，不会直接使用宿主机的 `127.0.0.1:33306`。
+
+> 当前 Docker 方案推荐前台/后台使用相对路径 `/api`，由容器内 Nginx 反代到 API 容器；只有前端与 API 分域/分机部署时，才改为完整地址。
+
+- 免重建依赖的运行时 compose：`deploy/docker/docker-compose.nest-admin-style.runtime.yml`
+- 运行时 compose 适合“本地完成构建 → 服务器只挂载 dist 和运行”的协作方式；上线前可用 `scripts/check-runtime-artifacts.sh` 快速检查产物里是否还残留 `localhost` API 地址。

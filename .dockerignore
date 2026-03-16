@@ -1,0 +1,15 @@
+node_modules
+.pnpm-store
+.git
+.gitignore
+.husky
+.vscode
+.idea
+**/node_modules
+**/dist
+**/.output
+**/coverage
+**/unpackage
+**/.DS_Store
+memory
+*.log
