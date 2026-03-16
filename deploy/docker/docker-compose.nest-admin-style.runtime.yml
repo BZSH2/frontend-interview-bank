@@ -30,11 +30,18 @@ services:
       - interview_bank_runtime_mysql_data:/var/lib/mysql
 
   interview-bank-api:
-    image: docker.m.daocloud.io/library/node:24
+    # 运行态只需要 Node.js 执行 dist/main.js。
+    # 注意：api-server 使用 Prisma，需要正确的 OpenSSL 检测能力。
+    # 这里用一个“slim + openssl”的运行时镜像（Dockerfile.node-runtime）来保证稳定。
+    build:
+      context: .
+      dockerfile: Dockerfile.node-runtime
+    image: interview-bank-node-runtime:20-slim-openssl
     container_name: interview-bank-api
     restart: unless-stopped
     working_dir: /workspace/api-server
-    command: ['node', 'dist/main.js']
+    command:
+      ['sh', '-lc', './node_modules/.bin/prisma db push --skip-generate && node dist/main.js']
     env_file:
       - ../../api-server/.env
     environment:

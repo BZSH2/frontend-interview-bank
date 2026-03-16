@@ -1,0 +1,22 @@
+# Runtime-only Node image for api-server
+#
+# Why this exists:
+# - api-server uses Prisma
+# - Prisma needs to detect the correct OpenSSL version at runtime
+# - node:20-slim is small but does NOT include the `openssl` binary by default,
+#   which can cause Prisma to fall back to the wrong engine target (openssl-1.1.x)
+#
+# So we install openssl once at image build time to make runtime stable.
+
+FROM docker.m.daocloud.io/library/node:20-slim
+
+# Use Aliyun Debian mirrors for better connectivity inside Alibaba Cloud
+RUN sed -i \
+    -e 's|http://deb.debian.org/debian-security|http://mirrors.aliyun.com/debian-security|g' \
+    -e 's|http://deb.debian.org/debian|http://mirrors.aliyun.com/debian|g' \
+    /etc/apt/sources.list.d/debian.sources \
+  && apt-get update -y \
+  && apt-get install -y --no-install-recommends openssl \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace/api-server
