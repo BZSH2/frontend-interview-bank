@@ -18,9 +18,9 @@ echo 'make sure api-server is already running in another terminal:'
 echo '  pnpm dev:api'
 echo ''
 
-python3 -m http.server "$APP_PORT" -d "$ROOT_DIR/app-uni/dist/build/h5" &
+node "$ROOT_DIR/scripts/serve-static.mjs" --root "$ROOT_DIR/app-uni/dist/build/h5" --port "$APP_PORT" --host 127.0.0.1 &
 APP_PID=$!
-python3 -m http.server "$ADMIN_PORT" -d "$ROOT_DIR/admin-web/dist" &
+node "$ROOT_DIR/scripts/serve-static.mjs" --root "$ROOT_DIR/admin-web/dist" --port "$ADMIN_PORT" --host 127.0.0.1 &
 ADMIN_PID=$!
 
 cleanup() {
