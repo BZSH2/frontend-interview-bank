@@ -65,6 +65,8 @@ export interface AdminQuestionDetail {
   tags?: string[];
   hasExplanation: boolean;
   status: QuestionStatus;
+  createdAt: string;
+  updatedAt: string;
   explanationContent?: string | null;
   explanationStatus?: ExplanationStatus | null;
   explanationUpdatedAt?: string | null;
