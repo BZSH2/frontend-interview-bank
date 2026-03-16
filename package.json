@@ -21,6 +21,7 @@
     "dev:admin": "pnpm --filter admin-web dev",
     "bootstrap:dev": "sh scripts/bootstrap-dev.sh",
     "build:all": "sh scripts/build-all.sh",
+    "validate:env": "node scripts/validate-env.mjs",
     "smoke:test": "sh scripts/smoke-test.sh",
     "preview:all": "sh scripts/run-preview.sh",
     "serve:static": "node scripts/serve-static.mjs",

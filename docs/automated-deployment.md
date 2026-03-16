@@ -4,7 +4,7 @@
 
 - CI 负责检查代码质量和构建可用性
 - Deploy workflow 负责把仓库同步到远程服务器
-- 远程服务器使用 `scripts/deploy-remote.sh` 执行安装、构建、数据库同步、服务重启、烟雾测试
+- 远程服务器使用 `scripts/deploy-remote.sh` 执行环境校验、安装、构建、数据库同步、服务重启、烟雾测试
 
 适合单台云服务器 / VPS / Linux 主机。
 
@@ -49,9 +49,15 @@ mkdir -p /var/www/frontend-interview-bank/current
 /var/www/frontend-interview-bank/current/admin-web/.env
 ```
 
-可从各自的 `.env.example` 复制开始。
+可从各自的 `.env.example` 复制开始，然后建议先在远程机器执行：
+
+```bash
+cd /var/www/frontend-interview-bank/current
+pnpm validate:env -- --require-env-files
+```
 
 > 注意：GitHub Actions 的 rsync 已显式排除了这三个 `.env` 文件，自动部署不会覆盖它们。
+> `deploy-remote.sh` 现在默认也会要求这三个 `.env` 真实存在；如果缺失，会直接失败而不是静默复制 example。
 
 ### 3) 安装 / 更新 systemd（可选）
 
@@ -85,6 +91,9 @@ systemctl enable frontend-interview-bank-admin
 - `DEPLOY_PORT`：SSH 端口，默认 `22`
 - `DEPLOY_PATH`：部署根目录，默认 `/var/www/frontend-interview-bank`
 - `API_PORT`：API 对外端口，用于远程 smoke test，默认 `3000`
+- `ADMIN_TOKEN`：如果生产 API 开启了后台鉴权，建议一并配置，供 deploy workflow 的 smoke test 使用
+- `APP_BASE_URL`：可选，部署后额外验证前台入口页
+- `ADMIN_BASE_URL`：可选，部署后额外验证后台入口页
 
 ## workflow 行为说明
 
@@ -114,6 +123,8 @@ pnpm build:all
 4. 用 rsync 把仓库同步到远程 `current/`
 5. 通过 SSH 执行 `scripts/deploy-remote.sh`
 6. 远程脚本执行：
+   - 校验 `.env` 是否存在
+   - `pnpm validate:env -- --require-env-files`
    - `pnpm install`
    - `pnpm --filter api-server prisma:push`
    - `pnpm build:all`
@@ -155,8 +166,18 @@ API_PORT=3000 \
 RUN_DB_SEED=false \
 INSTALL_SYSTEMD_UNITS=false \
 RUN_SMOKE_TEST=true \
+APP_BASE_URL=https://app.example.com \
+ADMIN_BASE_URL=https://admin.example.com \
 sh scripts/deploy-remote.sh
 ```
+
+如需保留旧的“缺失 `.env` 时自动复制 example”行为，可显式加：
+
+```bash
+ALLOW_ENV_EXAMPLE_FALLBACK=true sh scripts/deploy-remote.sh
+```
+
+但更推荐把真实 `.env` 作为服务器预置条件。
 
 ## 常见注意点
 
@@ -174,6 +195,23 @@ sh scripts/deploy-remote.sh
 `scripts/smoke-test.sh` 已支持读取环境变量 `ADMIN_TOKEN` 并自动携带 `x-admin-token` 请求后台接口。
 
 如果你的 systemd service 或 shell 环境里能拿到该变量，部署后的 smoke test 就不会被后台鉴权拦住。
+
+脚本默认会验证：
+
+- `/api/health/live`
+- `/api/health/ready`
+- 后台接口
+- 题目列表
+- 本地构建产物
+
+如果你的静态站点已经通过 Nginx / 反向代理挂出，也可以在运行部署脚本前补充：
+
+```bash
+APP_BASE_URL=https://app.example.com
+ADMIN_BASE_URL=https://admin.example.com
+```
+
+这样远程 smoke test 会顺手验证前后台入口页是否可访问。
 
 ### 3. `build:all` 会再次做 lint / typecheck
 

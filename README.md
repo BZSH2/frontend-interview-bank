@@ -64,9 +64,10 @@ pnpm bootstrap:dev
 
 1. 安装依赖
 2. 复制缺失的 `.env`
-3. 启动 `docker compose` 里的 MySQL
-4. 执行 `prisma:push`
-5. 注入示例数据
+3. 校验三端环境变量是否合理
+4. 启动 `docker compose` 里的 MySQL
+5. 执行 `prisma:push`
+6. 注入示例数据
 
 ### 2) 手动初始化（可选）
 
@@ -189,6 +190,8 @@ pnpm lint:fix
 pnpm format
 pnpm typecheck
 pnpm check
+pnpm validate:env
+pnpm validate:env -- --require-env-files
 pnpm bootstrap:dev
 pnpm build:all
 pnpm smoke:test
@@ -201,15 +204,46 @@ pnpm --filter app-uni build:h5
 pnpm --filter admin-web build
 ```
 
+`pnpm validate:env` 会校验：
+
+- `api-server/.env` / `.env.example` 中的 `PORT`、`DATABASE_URL`
+- `admin-web` / `app-uni` 的 `VITE_API_BASE_URL` 是否为合法 URL，且以 `/api` 结尾
+- 如果 API 开启了 `ADMIN_TOKEN`，则后台 `VITE_ADMIN_TOKEN` 是否保持一致
+- GitHub 同步相关变量是否成对出现
+
 ## 推荐本地验收流程
 
 如果你想快速确认项目可演示，推荐这条顺序：
 
 ```bash
 pnpm bootstrap:dev
+pnpm validate:env -- --require-env-files
 pnpm build:all
 pnpm dev:api
 pnpm preview:all
+pnpm smoke:test
+```
+
+## 健康检查与烟雾测试
+
+当前 API 同时提供两类健康检查：
+
+- `GET /api/health` 或 `GET /api/health/live`：进程存活检查
+- `GET /api/health/ready`：就绪检查，会额外探测数据库连接
+
+默认烟雾测试会依次验证：
+
+- `health/live`
+- `health/ready`
+- 后台概览与申请列表
+- 题目列表
+- 前后台构建产物是否存在
+
+如果你想连同线上静态站点一起验收，也可以额外传入：
+
+```bash
+APP_BASE_URL=https://your-app.example.com \
+ADMIN_BASE_URL=https://your-admin.example.com \
 pnpm smoke:test
 ```
 
@@ -230,6 +264,9 @@ pnpm smoke:test
 - 文件：`.github/workflows/deploy.yml`
 - 远程脚本：`scripts/deploy-remote.sh`
 - systemd 模板：`deploy/systemd/*.service.example`
+
+`deploy-remote.sh` 默认会把“缺失 `.env` 时自动复制 example”视为风险并直接失败；
+只有显式设置 `ALLOW_ENV_EXAMPLE_FALLBACK=true` 时，才会回退到 example 配置。
 
 适合这类最小化生产方式：
 

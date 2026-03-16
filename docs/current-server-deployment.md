@@ -24,6 +24,7 @@
 ```bash
 cd /root/.openclaw/workspace/frontend-interview-bank
 pnpm bootstrap:dev
+pnpm validate:env -- --require-env-files
 pnpm build:all
 ```
 
@@ -49,7 +50,8 @@ pnpm preview:all
 
 - 用户端：`http://当前服务器IP:4173`
 - 后台：`http://当前服务器IP:4174`
-- API 健康检查：`http://当前服务器IP:3000/api/health`
+- API 存活检查：`http://当前服务器IP:3000/api/health`
+- API 就绪检查：`http://当前服务器IP:3000/api/health/ready`
 
 ## 三、systemd 长驻方式（推荐）
 
@@ -101,6 +103,7 @@ systemctl status frontend-interview-bank-admin
 ```bash
 cd /root/.openclaw/workspace/frontend-interview-bank
 pnpm bootstrap:dev
+pnpm validate:env -- --require-env-files
 pnpm build:all
 pnpm smoke:test
 ```

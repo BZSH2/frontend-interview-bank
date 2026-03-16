@@ -4,15 +4,18 @@ set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT_DIR"
 
-echo '[1/5] install dependencies'
+echo '[1/6] install dependencies'
 pnpm install --no-frozen-lockfile
 
-echo '[2/5] prepare env files'
+echo '[2/6] prepare env files'
 [ -f api-server/.env ] || cp api-server/.env.example api-server/.env
 [ -f app-uni/.env ] || cp app-uni/.env.example app-uni/.env
 [ -f admin-web/.env ] || cp admin-web/.env.example admin-web/.env
 
-echo '[3/5] start mysql'
+echo '[3/6] validate env files'
+pnpm validate:env -- --require-env-files
+
+echo '[4/6] start mysql'
 if ! command -v docker >/dev/null 2>&1; then
   echo 'docker not found. Please install Docker Desktop (or provide your own MySQL and update api-server/.env DATABASE_URL).' >&2
   echo 'then run:' >&2
@@ -23,7 +26,7 @@ fi
 
 docker compose up -d mysql
 
-echo '[4/5] wait mysql health'
+echo '[5/6] wait mysql health'
 ATTEMPTS=0
 while [ "$ATTEMPTS" -lt 30 ]; do
   STATUS=$(docker inspect -f '{{.State.Health.Status}}' frontend-interview-bank-mysql 2>/dev/null || printf 'starting')
@@ -39,7 +42,7 @@ if [ "$STATUS" != 'healthy' ]; then
   exit 1
 fi
 
-echo '[5/5] init schema and seed demo data'
+echo '[6/6] init schema and seed demo data'
 pnpm --filter api-server prisma:push
 pnpm --filter api-server prisma:seed
 

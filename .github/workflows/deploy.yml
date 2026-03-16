@@ -35,6 +35,9 @@ jobs:
       DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
       DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/var/www/frontend-interview-bank' }}
       API_PORT: ${{ secrets.API_PORT || '3000' }}
+      ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN || '' }}
+      APP_BASE_URL: ${{ secrets.APP_BASE_URL || '' }}
+      ADMIN_BASE_URL: ${{ secrets.ADMIN_BASE_URL || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -106,4 +109,4 @@ jobs:
       - name: Run remote deploy script
         run: |
           ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
-            "cd '$DEPLOY_PATH/current' && chmod +x scripts/deploy-remote.sh && DEPLOY_ROOT='$DEPLOY_PATH' API_PORT='$API_PORT' RUN_DB_SEED='$RUN_DB_SEED' INSTALL_SYSTEMD_UNITS='$INSTALL_SYSTEMD_UNITS' RUN_SMOKE_TEST='true' bash scripts/deploy-remote.sh"
+            "cd '$DEPLOY_PATH/current' && chmod +x scripts/deploy-remote.sh && DEPLOY_ROOT='$DEPLOY_PATH' API_PORT='$API_PORT' ADMIN_TOKEN='$ADMIN_TOKEN' APP_BASE_URL='$APP_BASE_URL' ADMIN_BASE_URL='$ADMIN_BASE_URL' RUN_DB_SEED='$RUN_DB_SEED' INSTALL_SYSTEMD_UNITS='$INSTALL_SYSTEMD_UNITS' RUN_SMOKE_TEST='true' bash scripts/deploy-remote.sh"

@@ -2,6 +2,8 @@
 
 ## 一、配置检查
 
+- [ ] 已执行 `pnpm validate:env -- --require-env-files`
+
 ### API
 
 - [ ] `api-server/.env` 已存在
@@ -36,12 +38,14 @@
 
 ## 四、运行检查
 
-- [ ] `/api/health` 可访问
+- [ ] `/api/health` 或 `/api/health/live` 可访问
+- [ ] `/api/health/ready` 可访问
 - [ ] `/api/admin/overview` 可访问
 - [ ] 前台首页可正常打开
 - [ ] 后台首页可正常打开
 - [ ] 新增讲解申请链路可用
 - [ ] 管理后台更新题目 / 分类 / 申请状态可用
+- [ ] 如有外部站点地址，已执行：`APP_BASE_URL=... ADMIN_BASE_URL=... pnpm smoke:test`
 
 ## 五、GitHub 同步检查
 
@@ -54,7 +58,7 @@
 - [ ] `.github/workflows/ci.yml` 运行通过
 - [ ] `.github/workflows/deploy.yml` 已按需启用（配置 secrets 后会自动运行）
 - [ ] GitHub Secrets 已配置：`DEPLOY_HOST` / `DEPLOY_USER` / `DEPLOY_SSH_KEY`
-- [ ] 远程机器已准备好 `.env`（自动部署不会覆盖 `.env`）
+- [ ] 远程机器已准备好 `.env`（自动部署不会覆盖 `.env`，缺失时部署脚本会直接失败）
 - [ ] 远程机器已验证可执行 `scripts/deploy-remote.sh`
 - [ ] 远程 smoke test：`pnpm smoke:test` 可通过（必要时配置 `ADMIN_TOKEN`）
 

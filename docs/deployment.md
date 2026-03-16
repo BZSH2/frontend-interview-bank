@@ -29,7 +29,11 @@ pnpm install --no-frozen-lockfile
 
 ### 2. 配置环境变量
 
-参考：`api-server/.env.example`
+参考：
+
+- `api-server/.env.example`
+- `app-uni/.env.example`
+- `admin-web/.env.example`
 
 关键变量：
 
@@ -39,6 +43,14 @@ pnpm install --no-frozen-lockfile
 - `GITHUB_REPO`
 - `GITHUB_TOKEN`
 - `ADMIN_TOKEN`
+- `admin-web/.env` 中的 `VITE_API_BASE_URL`
+- `app-uni/.env` 中的 `VITE_API_BASE_URL`
+
+建议在部署前先执行：
+
+```bash
+pnpm validate:env -- --require-env-files
+```
 
 ### 3. 初始化数据库
 
@@ -121,6 +133,8 @@ node scripts/serve-static.mjs --root admin-web/dist --port 4174
 
 则访问 `/api/admin/*` 时会要求 `x-admin-token`。
 
+`pnpm validate:env -- --require-env-files` 会检查这两个 token 是否一致，避免“API 已加锁但后台构建时没带 token”这种常见配置错误。
+
 ### 2. GitHub Token
 
 - 建议使用最小权限 PAT
@@ -134,7 +148,31 @@ node scripts/serve-static.mjs --root admin-web/dist --port 4174
 - 通过 Nginx 反代 `/api`
 - 管理后台建议再加一层基础认证或 IP 限制
 
-## 四、自动部署方案
+## 四、健康检查与验收
+
+API 提供两个层级的健康接口：
+
+- `/api/health` / `/api/health/live`：进程仍在运行
+- `/api/health/ready`：数据库可连接，服务已就绪
+
+推荐验收顺序：
+
+```bash
+pnpm validate:env -- --require-env-files
+pnpm build:all
+API_BASE_URL=http://127.0.0.1:3000/api pnpm smoke:test
+```
+
+如果前台和后台已经挂到了外部域名或端口，也可以一起验证：
+
+```bash
+API_BASE_URL=https://api.example.com/api \
+APP_BASE_URL=https://app.example.com \
+ADMIN_BASE_URL=https://admin.example.com \
+pnpm smoke:test
+```
+
+## 五、自动部署方案
 
 仓库已提供：
 
@@ -150,7 +188,7 @@ node scripts/serve-static.mjs --root admin-web/dist --port 4174
 
 详见：`docs/automated-deployment.md`
 
-## 五、Docker / 容器化方式
+## 六、Docker / 容器化方式
 
 如果你希望和现有容器化项目风格保持一致，可以参考：
 
@@ -162,10 +200,10 @@ node scripts/serve-static.mjs --root admin-web/dist --port 4174
 
 ### Docker 构建时的前端环境变量
 
-由于 `app-uni` 和 `admin-web` 是静态构建产物，部署时必须在构建阶段注入：
+由于 `app-uni` 和 `admin-web` 是静态构建产物，部署时必须在构建阶段注入。当前仓库里的 Docker Compose 示例通过以下外层变量传入：
 
-- `APP_H5_API_BASE_URL`
-- `ADMIN_WEB_API_BASE_URL`
-- `ADMIN_WEB_TOKEN`（如需）
+- `APP_H5_API_BASE_URL` → `app-uni` 镜像构建参数 `VITE_API_BASE_URL`
+- `ADMIN_WEB_API_BASE_URL` → `admin-web` 镜像构建参数 `VITE_API_BASE_URL`
+- `ADMIN_WEB_TOKEN` → `admin-web` 镜像构建参数 `VITE_ADMIN_TOKEN`（如需）
 
 > 在 `docker-compose.nest-admin-style.yml` 中，容器内 API 会自动覆盖 `DATABASE_URL`，改为连接 `interview-bank-mysql:3306`。

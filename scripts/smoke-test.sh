@@ -2,6 +2,8 @@
 set -eu
 
 API_BASE_URL=${API_BASE_URL:-http://127.0.0.1:3000/api}
+APP_BASE_URL=${APP_BASE_URL:-}
+ADMIN_BASE_URL=${ADMIN_BASE_URL:-}
 ADMIN_TOKEN=${ADMIN_TOKEN:-}
 SMOKE_SKIP_API=${SMOKE_SKIP_API:-false}
 SMOKE_RETRIES=${SMOKE_RETRIES:-5}
@@ -37,16 +39,39 @@ curl_with_retry() {
   done
 
   echo "[smoke] $name failed after $SMOKE_RETRIES attempts: $url" >&2
-  echo "[smoke] hint: ensure api-server is running and API_BASE_URL is correct." >&2
-  echo "[smoke] hint: start api with: pnpm dev:api" >&2
   exit 1
 }
 
+html_curl() {
+  tmp_file=$(mktemp)
+  if ! curl -fsS "$1" >"$tmp_file"; then
+    rm -f "$tmp_file"
+    return 1
+  fi
+
+  if ! grep -qi '<!doctype html' "$tmp_file"; then
+    rm -f "$tmp_file"
+    return 1
+  fi
+
+  rm -f "$tmp_file"
+  return 0
+}
+
 echo "[smoke] API_BASE_URL=$API_BASE_URL"
+if [ -n "$APP_BASE_URL" ]; then
+  echo "[smoke] APP_BASE_URL=$APP_BASE_URL"
+fi
+if [ -n "$ADMIN_BASE_URL" ]; then
+  echo "[smoke] ADMIN_BASE_URL=$ADMIN_BASE_URL"
+fi
 
 if [ "$SMOKE_SKIP_API" != 'true' ]; then
-  printf '[smoke] health\n'
-  curl_with_retry 'health' "$API_BASE_URL/health" curl -fsS
+  printf '[smoke] health live\n'
+  curl_with_retry 'health live' "$API_BASE_URL/health/live" curl -fsS
+
+  printf '[smoke] health ready\n'
+  curl_with_retry 'health ready' "$API_BASE_URL/health/ready" curl -fsS
 
   printf '[smoke] admin overview\n'
   curl_with_retry 'admin overview' "$API_BASE_URL/admin/overview" admin_curl
@@ -63,5 +88,15 @@ fi
 printf '[smoke] build artifacts\n'
 test -f "$ROOT_DIR/admin-web/dist/index.html"
 test -f "$ROOT_DIR/app-uni/dist/build/h5/index.html"
+
+if [ -n "$APP_BASE_URL" ]; then
+  printf '[smoke] app preview url\n'
+  curl_with_retry 'app preview url' "$APP_BASE_URL" html_curl
+fi
+
+if [ -n "$ADMIN_BASE_URL" ]; then
+  printf '[smoke] admin preview url\n'
+  curl_with_retry 'admin preview url' "$ADMIN_BASE_URL" html_curl
+fi
 
 echo 'smoke test passed.'
