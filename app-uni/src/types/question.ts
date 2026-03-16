@@ -19,6 +19,14 @@ export interface QuestionItem {
   };
 }
 
+export interface QuestionListResult {
+  list: QuestionItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
 export interface QuestionDetail extends QuestionItem {
   content: string;
   answer?: string | null;

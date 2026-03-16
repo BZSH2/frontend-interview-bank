@@ -1,21 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-
 import type { QuestionItem } from '@/types/question';
+import { getDifficultyLabel } from '@/utils/question';
 
-const props = defineProps<{
+defineProps<{
   item: QuestionItem;
 }>();
-
-const difficultyLabel = computed(() => {
-  const mapping = {
-    EASY: '简单',
-    MEDIUM: '中等',
-    HARD: '困难',
-  } as const;
-
-  return mapping[props.item.difficulty] || props.item.difficulty;
-});
 </script>
 
 <template>
@@ -29,7 +18,7 @@ const difficultyLabel = computed(() => {
 
     <view class="question-card__meta">
       <text>{{ item.category.name }}</text>
-      <text>{{ difficultyLabel }}</text>
+      <text>{{ getDifficultyLabel(item.difficulty) }}</text>
       <text>{{ item.hasExplanation ? '已有讲解' : '待补讲解' }}</text>
     </view>
   </navigator>
