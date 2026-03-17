@@ -1,4 +1,9 @@
-import type { CategoryItem, QuestionDetail, QuestionItem, QuestionRequestStatus } from '@/types/question';
+import type {
+  CategoryItem,
+  QuestionDetail,
+  QuestionListResult,
+  QuestionRequestStatus,
+} from '@/types/question';
 
 import { request } from './http';
 
@@ -17,7 +22,7 @@ export function getCategories() {
 }
 
 export function getQuestions(params: QueryQuestionsParams) {
-  return request<{ list: QuestionItem[]; total: number; page: number; pageSize: number }>({
+  return request<QuestionListResult>({
     url: '/questions',
     data: params,
   });

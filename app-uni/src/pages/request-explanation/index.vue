@@ -17,6 +17,10 @@ const title = ref('');
 const pageError = ref('');
 
 const noteLength = computed(() => note.value.length);
+const trimmedNote = computed(() => note.value.trim());
+const canSubmit = computed(
+  () => Boolean(questionId.value) && !submitting.value && !pageError.value,
+);
 
 function resolveRequestSource() {
   return typeof window !== 'undefined' ? 'H5' : 'MINIAPP';
@@ -36,7 +40,7 @@ async function loadQuestionTitle() {
 }
 
 async function submit() {
-  if (!questionId.value || submitting.value) {
+  if (!canSubmit.value) {
     uni.showToast({
       title: '题目信息异常',
       icon: 'none',
@@ -49,7 +53,7 @@ async function submit() {
   try {
     const result = await createExplanationRequest({
       questionId: questionId.value,
-      note: note.value || undefined,
+      note: trimmedNote.value || undefined,
       source: resolveRequestSource(),
     });
 
@@ -111,10 +115,16 @@ onLoad((options) => {
           maxlength="300"
           placeholder="比如：希望加真实面试追问、代码示例、性能场景分析..."
         />
+        <view class="card__hint">备注为选填；仅输入空格时会自动按“未填写”处理。</view>
         <view class="card__count">{{ noteLength }}/300</view>
       </view>
 
-      <button class="submit-btn submit-btn--primary" :loading="submitting" @click="submit">
+      <button
+        class="submit-btn submit-btn--primary"
+        :disabled="!canSubmit"
+        :loading="submitting"
+        @click="submit"
+      >
         提交讲解申请
       </button>
     </template>
@@ -153,6 +163,12 @@ onLoad((options) => {
   &__textarea {
     width: 100%;
     min-height: 220rpx;
+  }
+
+  &__hint {
+    color: #86909c;
+    font-size: 24rpx;
+    line-height: 1.6;
   }
 
   &__count {

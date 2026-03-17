@@ -9,15 +9,12 @@ export class QuestionsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(query: QueryQuestionsDto) {
+    const keywordFilters = this.buildKeywordFilters(query.keyword);
     const where: Prisma.QuestionWhereInput = {
       status: 'PUBLISHED',
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
       ...(query.difficulty ? { difficulty: query.difficulty } : {}),
-      ...(query.keyword
-        ? {
-            OR: [{ title: { contains: query.keyword } }, { summary: { contains: query.keyword } }],
-          }
-        : {}),
+      ...(keywordFilters.length ? { AND: keywordFilters } : {}),
     };
 
     const [total, list] = await this.prisma.$transaction([
@@ -49,6 +46,7 @@ export class QuestionsService {
       total,
       page: query.page,
       pageSize: query.pageSize,
+      hasMore: query.page * query.pageSize < total,
     };
   }
 
@@ -117,5 +115,31 @@ export class QuestionsService {
       supportCount: question.explanationRequest?.supportCount || 0,
       githubIssueNumber: question.explanationRequest?.githubIssueNumber || null,
     };
+  }
+
+  private buildKeywordFilters(keyword?: string): Prisma.QuestionWhereInput[] {
+    if (!keyword) {
+      return [];
+    }
+
+    return keyword
+      .split(/\s+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .map((term) => ({
+        OR: [
+          { title: { contains: term } },
+          { summary: { contains: term } },
+          { content: { contains: term } },
+          { answer: { contains: term } },
+          { category: { name: { contains: term } } },
+          {
+            tags: {
+              path: '$',
+              string_contains: term,
+            },
+          },
+        ],
+      }));
   }
 }

@@ -32,7 +32,7 @@ services:
   interview-bank-api:
     build:
       context: ../..
-      dockerfile: api-server/Dockerfile
+      dockerfile: deploy/docker/Dockerfile.node-runtime
     container_name: interview-bank-api
     restart: unless-stopped
     env_file:
@@ -43,7 +43,13 @@ services:
     ports:
       - '${API_HOST_PORT:-36000}:3000'
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/api/health']
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health/ready').then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1))",
+        ]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -62,7 +68,8 @@ services:
     ports:
       - '${APP_HOST_PORT:-36080}:80'
     depends_on:
-      - interview-bank-api
+      interview-bank-api:
+        condition: service_healthy
 
   interview-bank-admin:
     build:
@@ -76,7 +83,8 @@ services:
     ports:
       - '${ADMIN_HOST_PORT:-36081}:80'
     depends_on:
-      - interview-bank-api
+      interview-bank-api:
+        condition: service_healthy
 
 volumes:
   interview_bank_mysql_data:

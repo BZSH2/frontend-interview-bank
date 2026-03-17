@@ -4,6 +4,7 @@ import { computed, ref } from 'vue';
 
 import { getQuestionDetail, getQuestionRequestStatus } from '@/services/question';
 import type { QuestionDetail, QuestionRequestStatus } from '@/types/question';
+import { getDifficultyLabel } from '@/utils/question';
 
 interface PageOptions {
   id?: string;
@@ -13,8 +14,12 @@ const question = ref<QuestionDetail | null>(null);
 const requestStatus = ref<QuestionRequestStatus | null>(null);
 const loading = ref(false);
 const error = ref('');
+const requestStatusError = ref('');
 const questionId = ref(0);
 
+const difficultyLabel = computed(() =>
+  question.value ? getDifficultyLabel(question.value.difficulty) : '',
+);
 const requestSummary = computed(() => {
   if (!requestStatus.value) {
     return '';
@@ -44,6 +49,21 @@ const explanationTimeText = computed(() => {
   return `最近更新：${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 });
 
+async function loadRequestStatus() {
+  if (!questionId.value) {
+    return;
+  }
+
+  requestStatusError.value = '';
+
+  try {
+    requestStatus.value = await getQuestionRequestStatus(questionId.value);
+  } catch (err) {
+    requestStatus.value = null;
+    requestStatusError.value = err instanceof Error ? err.message : '申请状态加载失败';
+  }
+}
+
 async function loadDetail() {
   if (!questionId.value) {
     error.value = '缺少题目 ID';
@@ -54,14 +74,12 @@ async function loadDetail() {
   error.value = '';
 
   try {
-    const [detailResult, statusResult] = await Promise.all([
-      getQuestionDetail(questionId.value),
-      getQuestionRequestStatus(questionId.value),
-    ]);
-
-    question.value = detailResult;
-    requestStatus.value = statusResult;
+    question.value = await getQuestionDetail(questionId.value);
+    await loadRequestStatus();
   } catch (err) {
+    question.value = null;
+    requestStatus.value = null;
+    requestStatusError.value = '';
     error.value = err instanceof Error ? err.message : '题目详情加载失败';
   } finally {
     loading.value = false;
@@ -104,7 +122,7 @@ onPullDownRefresh(async () => {
         <view class="card__title">{{ question.title }}</view>
         <view class="card__meta">
           <text>{{ question.category.name }}</text>
-          <text>{{ question.difficulty }}</text>
+          <text>{{ difficultyLabel }}</text>
           <text>{{ question.hasExplanation ? '已有讲解' : '暂无讲解' }}</text>
         </view>
         <view v-if="question.tags?.length" class="card__tags">
@@ -128,21 +146,27 @@ onPullDownRefresh(async () => {
         <view class="card__content">{{ question.explanationContent }}</view>
       </view>
 
-      <view v-if="requestStatus" class="card">
+      <view v-if="question.hasExplanation || requestStatus || requestStatusError" class="card">
         <view class="card__section-title">讲解申请状态</view>
 
         <view v-if="question.hasExplanation" class="card__content">
           该题已具备系统讲解内容，当前不需要重复申请。
         </view>
-        <view v-else class="card__content">{{ requestSummary }}</view>
-
-        <button
-          v-if="!question.hasExplanation"
-          class="action-btn action-btn--primary"
-          @click="navigateToRequest"
-        >
-          {{ requestStatus.hasRequest ? '我也想看这题讲解' : '申请新增讲解' }}
-        </button>
+        <template v-else-if="requestStatus">
+          <view class="card__content">{{ requestSummary }}</view>
+          <button class="action-btn action-btn--primary" @click="navigateToRequest">
+            {{ requestStatus.hasRequest ? '我也想看这题讲解' : '申请新增讲解' }}
+          </button>
+        </template>
+        <template v-else>
+          <view class="card__content card__content--error">{{ requestStatusError }}</view>
+          <view class="card__actions">
+            <button class="action-btn" @click="loadRequestStatus">重试加载状态</button>
+            <button class="action-btn action-btn--primary" @click="navigateToRequest">
+              直接申请新增讲解
+            </button>
+          </view>
+        </template>
       </view>
     </template>
   </view>
@@ -219,6 +243,16 @@ onPullDownRefresh(async () => {
   &__content {
     line-height: 1.8;
     white-space: pre-wrap;
+
+    &--error {
+      color: #cf1322;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16rpx;
   }
 }
 

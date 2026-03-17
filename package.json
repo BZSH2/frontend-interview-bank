@@ -14,16 +14,18 @@
     "dev:api": "pnpm --filter api-server start:dev",
     "lint": "eslint . --ext .js,.cjs,.mjs,.ts,.vue --cache",
     "lint:fix": "eslint . --ext .js,.cjs,.mjs,.ts,.vue --fix",
-    "format": "prettier . --write",
+    "format": "prettier . --write --ignore-unknown",
     "typecheck": "pnpm -r typecheck",
     "check": "pnpm lint && pnpm typecheck",
     "prepare": "husky",
     "dev:admin": "pnpm --filter admin-web dev",
     "bootstrap:dev": "sh scripts/bootstrap-dev.sh",
     "build:all": "sh scripts/build-all.sh",
+    "validate:env": "node scripts/validate-env.mjs",
     "smoke:test": "sh scripts/smoke-test.sh",
     "preview:all": "sh scripts/run-preview.sh",
-    "serve:static": "node scripts/serve-static.mjs"
+    "serve:static": "node scripts/serve-static.mjs",
+    "check:runtime-artifacts": "sh scripts/check-runtime-artifacts.sh"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",

@@ -1,4 +1,7 @@
-import type { CreateExplanationRequestPayload, CreateExplanationRequestResult } from '@/types/request';
+import type {
+  CreateExplanationRequestPayload,
+  CreateExplanationRequestResult,
+} from '@/types/request';
 
 import { request } from './http';
 
