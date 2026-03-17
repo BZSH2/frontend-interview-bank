@@ -7,6 +7,8 @@ import {
   SourcePlatform,
 } from '@prisma/client';
 
+import { importedVueSeriesQuestions } from './data/vue-series-questions';
+
 const prisma = new PrismaClient();
 
 const categories = [
@@ -18,7 +20,7 @@ const categories = [
   { key: 'engineering', name: '工程化', sort: 6 },
 ];
 
-const questions = [
+const baseQuestions = [
   {
     title: '说一下 BFC 的作用',
     summary: '常见 CSS 布局题，考察块级格式化上下文。',
@@ -41,17 +43,6 @@ const questions = [
     content: '请解释闭包的概念，并说明它在真实业务中的应用。',
     answer:
       '闭包是函数与其词法作用域的组合。常见应用包括数据私有化、函数柯里化、事件处理器中保留外部变量、缓存与防抖节流实现。',
-    hasExplanation: false,
-  },
-  {
-    title: 'v-if 和 v-show 的区别',
-    summary: 'Vue 基础题，考察渲染成本与使用场景。',
-    categoryKey: 'vue',
-    difficulty: Difficulty.EASY,
-    tags: ['Vue', '渲染'],
-    content: '请从编译结果、运行性能、适用场景几个维度说明 v-if 与 v-show 的区别。',
-    answer:
-      'v-if 是真正的条件渲染，切换时有销毁与重建成本；v-show 只是切换 display，初次渲染成本高但切换成本低。频繁切换建议用 v-show。',
     hasExplanation: false,
   },
   {
@@ -87,6 +78,8 @@ const questions = [
     hasExplanation: false,
   },
 ];
+
+const questions = [...baseQuestions, ...importedVueSeriesQuestions];
 
 async function main() {
   await prisma.explanationRequestLog.deleteMany();

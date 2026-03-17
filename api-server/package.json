@@ -13,6 +13,7 @@
     "postinstall": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:seed": "prisma db seed",
+    "prisma:import:vue-series": "ts-node --project tsconfig.json --transpile-only prisma/import-vue-series.ts",
     "prisma:studio": "prisma studio",
     "sync:github-issues": "ts-node --project tsconfig.json --transpile-only scripts/sync-github-issues.ts",
     "sync:github-issues:dry-run": "pnpm sync:github-issues -- --dry-run"
