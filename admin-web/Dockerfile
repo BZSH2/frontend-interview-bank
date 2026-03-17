@@ -11,11 +11,12 @@ COPY tsconfig.base.json .
 COPY admin-web/package.json ./admin-web/package.json
 COPY app-uni/package.json ./app-uni/package.json
 COPY api-server/package.json ./api-server/package.json
+COPY api-server/prisma ./api-server/prisma
 
 RUN npm config set registry https://registry.npmmirror.com \
   && npm install -g pnpm@10.32.1
 RUN pnpm config set registry https://registry.npmmirror.com \
-  && pnpm install --no-frozen-lockfile
+  && HUSKY=0 pnpm install --no-frozen-lockfile
 
 COPY . .
 RUN pnpm --filter admin-web build

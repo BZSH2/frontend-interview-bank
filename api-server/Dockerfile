@@ -13,10 +13,11 @@ FROM base AS deps
 COPY package.json pnpm-workspace.yaml ./
 COPY tsconfig.base.json ./
 COPY api-server/package.json ./api-server/package.json
+COPY api-server/prisma ./api-server/prisma
 COPY app-uni/package.json ./app-uni/package.json
 COPY admin-web/package.json ./admin-web/package.json
 
-RUN pnpm install --no-frozen-lockfile
+RUN HUSKY=0 pnpm install --no-frozen-lockfile
 
 FROM deps AS builder
 

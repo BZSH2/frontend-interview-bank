@@ -39,9 +39,14 @@ jobs:
         run: pnpm --filter api-server build
 
       - name: Build app-uni h5
+        env:
+          VITE_API_BASE_URL: /api
         run: pnpm --filter app-uni build:h5
 
       - name: Build admin-web
+        env:
+          VITE_API_BASE_URL: /api
+          VITE_ADMIN_TOKEN: ''
         run: pnpm --filter admin-web build
 
       - name: Check runtime artifacts
