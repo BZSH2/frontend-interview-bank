@@ -1,112 +1,112 @@
-name: deploy
+name: publish-runtime-images
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows:
+      - ci
+    types:
+      - completed
   workflow_dispatch:
-    inputs:
-      run_db_seed:
-        description: 'Seed demo data after prisma:push'
-        required: false
-        default: false
-        type: boolean
-      install_systemd_units:
-        description: 'Install/update example systemd service files before restart'
-        required: false
-        default: false
-        type: boolean
-
-concurrency:
-  group: production-deploy
-  cancel-in-progress: true
 
 permissions:
   contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
 
 jobs:
-  deploy:
-    if: ${{ secrets.DEPLOY_HOST != '' && secrets.DEPLOY_USER != '' && secrets.DEPLOY_SSH_KEY != '' }}
+  publish:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
-    environment: production
-    env:
-      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
-      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/var/www/frontend-interview-bank' }}
-      API_PORT: ${{ secrets.API_PORT || '3000' }}
-      ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN || '' }}
-      APP_BASE_URL: ${{ secrets.APP_BASE_URL || '' }}
-      ADMIN_BASE_URL: ${{ secrets.ADMIN_BASE_URL || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
         with:
-          version: 10.32.1
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Normalize image namespace
+        run: echo "IMAGE_NAMESPACE=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          node-version: 20
-          cache: pnpm
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Verify repo builds before deploy
-        run: pnpm build:all
-
-      - name: Resolve deploy flags
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.run_db_seed }}" = "true" ]; then
-            echo 'RUN_DB_SEED=true' >> "$GITHUB_ENV"
-          else
-            echo 'RUN_DB_SEED=false' >> "$GITHUB_ENV"
-          fi
-
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.install_systemd_units }}" = "true" ]; then
-            echo 'INSTALL_SYSTEMD_UNITS=true' >> "$GITHUB_ENV"
-          else
-            echo 'INSTALL_SYSTEMD_UNITS=false' >> "$GITHUB_ENV"
-          fi
-
-      - name: Validate deploy secrets
-        run: |
-          test -n "$DEPLOY_HOST" || (echo 'Missing secret DEPLOY_HOST' >&2; exit 1)
-          test -n "$DEPLOY_USER" || (echo 'Missing secret DEPLOY_USER' >&2; exit 1)
-          test -n "${{ secrets.DEPLOY_SSH_KEY }}" || (echo 'Missing secret DEPLOY_SSH_KEY' >&2; exit 1)
-
-      - name: Start ssh-agent and add key
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Docker metadata (api)
+        id: meta_api
+        uses: docker/metadata-action@v5
         with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/frontend-interview-bank-api
+          tags: |
+            type=raw,value=main,enable={{is_default_branch}}
+            type=sha,prefix=sha-
 
-      - name: Add deploy host to known_hosts
-        run: ssh-keyscan -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile.node-runtime
+          push: true
+          tags: ${{ steps.meta_api.outputs.tags }}
+          labels: ${{ steps.meta_api.outputs.labels }}
+          cache-from: type=gha,scope=api-runtime
+          cache-to: type=gha,mode=max,scope=api-runtime
 
-      - name: Ensure remote release directory exists
+      - name: Docker metadata (web)
+        id: meta_web
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/frontend-interview-bank-web
+          tags: |
+            type=raw,value=main,enable={{is_default_branch}}
+            type=sha,prefix=sha-
+
+      - name: Build and push H5 image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: app-uni/Dockerfile
+          push: true
+          build-args: |
+            VITE_API_BASE_URL=/api
+          tags: ${{ steps.meta_web.outputs.tags }}
+          labels: ${{ steps.meta_web.outputs.labels }}
+          cache-from: type=gha,scope=app-runtime
+          cache-to: type=gha,mode=max,scope=app-runtime
+
+      - name: Docker metadata (admin)
+        id: meta_admin
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/frontend-interview-bank-admin
+          tags: |
+            type=raw,value=main,enable={{is_default_branch}}
+            type=sha,prefix=sha-
+
+      - name: Build and push admin image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: admin-web/Dockerfile
+          push: true
+          build-args: |
+            VITE_API_BASE_URL=/api
+            VITE_ADMIN_TOKEN=
+          tags: ${{ steps.meta_admin.outputs.tags }}
+          labels: ${{ steps.meta_admin.outputs.labels }}
+          cache-from: type=gha,scope=admin-runtime
+          cache-to: type=gha,mode=max,scope=admin-runtime
+
+      - name: Publish summary
         run: |
-          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
-            "mkdir -p '$DEPLOY_PATH/current'"
-
-      - name: Sync repository to server
-        run: |
-          rsync -az --delete \
-            --exclude '.git' \
-            --exclude 'node_modules' \
-            --exclude 'admin-web/dist' \
-            --exclude 'app-uni/dist' \
-            --exclude 'api-server/dist' \
-            --exclude 'api-server/.env' \
-            --exclude 'admin-web/.env' \
-            --exclude 'app-uni/.env' \
-            -e "ssh -p $DEPLOY_PORT" \
-            ./ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/current/"
-
-      - name: Run remote deploy script
-        run: |
-          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
-            "cd '$DEPLOY_PATH/current' && chmod +x scripts/deploy-remote.sh && DEPLOY_ROOT='$DEPLOY_PATH' API_PORT='$API_PORT' ADMIN_TOKEN='$ADMIN_TOKEN' APP_BASE_URL='$APP_BASE_URL' ADMIN_BASE_URL='$ADMIN_BASE_URL' RUN_DB_SEED='$RUN_DB_SEED' INSTALL_SYSTEMD_UNITS='$INSTALL_SYSTEMD_UNITS' RUN_SMOKE_TEST='true' bash scripts/deploy-remote.sh"
+          echo 'Published images:' >> "$GITHUB_STEP_SUMMARY"
+          echo '- ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/frontend-interview-bank-api:main' >> "$GITHUB_STEP_SUMMARY"
+          echo '- ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/frontend-interview-bank-web:main' >> "$GITHUB_STEP_SUMMARY"
+          echo '- ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/frontend-interview-bank-admin:main' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Immutable sha-* tags are published in the workflow output via docker/metadata-action.' >> "$GITHUB_STEP_SUMMARY"

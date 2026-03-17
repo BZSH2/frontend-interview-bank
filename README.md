@@ -14,7 +14,7 @@
 - 后台管理题目 / 分类 / 讲解申请
 - 后台支持补录讲解，并自动把关联申请置为 `DONE`
 - 讲解申请可选择同步到 GitHub Issue
-- 提供种子数据、构建脚本、烟雾测试、CI、自动部署脚手架
+- 提供种子数据、构建脚本、运行态产物检查、CI、容器化交付脚手架
 
 ## 技术栈
 
@@ -23,7 +23,7 @@
 - **Admin**：Vue 3 + Vite + TypeScript
 - **Server**：NestJS + Prisma + MySQL
 - **Code Quality**：ESLint + Prettier + lint-staged + Husky + Commitlint
-- **Automation**：GitHub Actions + SSH/rsync 远程部署脚本
+- **Automation**：GitHub Actions + GHCR 运行态镜像发布
 
 ## 项目结构
 
@@ -39,14 +39,77 @@ frontend-interview-bank/
 └─ package.json
 ```
 
-## 环境要求
+## 推荐交付策略（重要）
 
-- Node.js 20+
-- pnpm 10+
-- Docker（本地起 MySQL 时推荐）
-- MySQL 8+
+当前仓库已经把部署口径收口为：
 
-## 快速开始
+1. **本地或 GitHub Actions hosted runner** 负责安装依赖、lint / typecheck、build、运行态产物检查、构建并发布运行态镜像。
+2. **服务器** 只负责：
+   - 准备 `api-server/.env`
+   - 准备 `deploy/docker/.env.runtime`
+   - `docker compose pull`
+   - `docker compose up -d`
+3. **当前服务器不再推荐执行** `pnpm install`、`pnpm bootstrap:dev`、`pnpm build:all` 这类源码级安装/构建流程。
+
+推荐端口统一为：
+
+- API：`36000`
+- 用户端 H5：`36080`
+- 管理后台：`36081`
+- MySQL：`33307`
+
+这样可避开当前机器上已存在的：
+
+- `vue-admin`：占用 `80`
+- `nest-admin`：占用 `35000`
+
+> 推荐运行态编排文件：`deploy/docker/docker-compose.nest-admin-style.runtime.yml`
+>
+> 本地/CI 如需从源码构建镜像，可用：`deploy/docker/docker-compose.nest-admin-style.yml`
+>
+> 该 build compose 适合“构建端”，**不适合作为当前服务器的推荐部署路径**。
+
+## 当前服务器推荐步骤（摘要）
+
+1. 先让 GitHub Actions 发布 GHCR 镜像：见 `docs/automated-deployment.md`
+2. 在服务器准备配置：
+
+```bash
+cp deploy/docker/.env.runtime.example deploy/docker/.env.runtime
+cp api-server/.env.example api-server/.env
+```
+
+3. 修改：
+   - `deploy/docker/.env.runtime` 里的镜像地址 / tag / MySQL 密码
+   - `api-server/.env` 里的业务环境变量
+4. 若 GHCR 包是私有的，先登录：
+
+```bash
+docker login ghcr.io
+```
+
+5. 启动纯运行态 compose：
+
+```bash
+docker compose \
+  --env-file deploy/docker/.env.runtime \
+  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml pull
+
+docker compose \
+  --env-file deploy/docker/.env.runtime \
+  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml up -d
+```
+
+6. 验证：
+
+```bash
+curl -fsS http://127.0.0.1:36000/api/health/live
+curl -fsS http://127.0.0.1:36000/api/health/ready
+```
+
+详细步骤见：`docs/current-server-deployment.md`
+
+## 本地开发快速开始
 
 ### 1) 安装依赖
 
@@ -71,8 +134,6 @@ pnpm bootstrap:dev
 
 ### 2) 手动初始化（可选）
 
-如果你想手动控制步骤：
-
 ```bash
 cp api-server/.env.example api-server/.env
 cp app-uni/.env.example app-uni/.env
@@ -83,7 +144,7 @@ pnpm --filter api-server prisma:push
 pnpm --filter api-server prisma:seed
 ```
 
-默认数据库：
+默认本地开发数据库：
 
 - host: `127.0.0.1`
 - port: `33306`
@@ -104,13 +165,32 @@ pnpm dev:admin
 默认地址：
 
 - API：`http://127.0.0.1:3000/api`
-- 用户端 H5：`http://127.0.0.1:5173`（uni-app dev server）
+- 用户端 H5：`http://127.0.0.1:5173`
 - 后台：`http://127.0.0.1:5174`
 
-### 4) 本地构建 + 预览
+## 本地构建与运行态验收
+
+### 本地构建
 
 ```bash
-pnpm build:all
+pnpm lint
+pnpm typecheck
+pnpm --filter api-server build
+VITE_API_BASE_URL=/api pnpm --filter app-uni build:h5
+VITE_API_BASE_URL=/api VITE_ADMIN_TOKEN= pnpm --filter admin-web build
+sh scripts/check-runtime-artifacts.sh
+```
+
+`check-runtime-artifacts.sh` 会检查：
+
+- `api-server/dist/main.js` 是否存在
+- `app-uni/dist/build/h5/index.html` 是否存在
+- `admin-web/dist/index.html` 是否存在
+- 前后台静态产物里是否残留 `localhost` / `127.0.0.1` 的 API 地址
+
+### 仅静态预览
+
+```bash
 pnpm preview:all
 ```
 
@@ -130,31 +210,6 @@ pnpm preview:all
 - 1 条已完成讲解的数据
 - 2 条“新增讲解申请”演示记录
 
-这意味着你本地启动后就可以直接演示：
-
-- 用户端浏览题目
-- 后台查看 / 筛选题目
-- 后台查看待处理讲解申请
-- 后台补写讲解并观察状态变化
-
-## 后台使用说明
-
-当前后台重点覆盖三个场景：
-
-1. **题目管理**
-   - 关键词 / 分类 / 难度 / 状态 / 讲解状态筛选
-   - 题目编辑器内直接补录讲解
-   - 查看题目更新时间、讲解更新时间、关联申请同步状态
-
-2. **讲解申请处理**
-   - 支持分页、筛选、修改申请状态
-   - 可一键跳转到题目编辑页
-   - 可将本地申请同步到 GitHub
-
-3. **分类管理**
-   - 维护分类名称与排序
-   - 实时看到每个分类下的题目数
-
 ## GitHub Issue 同步（可选）
 
 如果 `GITHUB_TOKEN` 为空，本地仍可完整跑通；只是申请不会自动创建 GitHub Issue。
@@ -166,21 +221,15 @@ pnpm --filter api-server sync:github-issues:dry-run
 pnpm --filter api-server sync:github-issues
 ```
 
-- `dry-run`：只预览要同步哪些申请
-- 正式命令：会把 `githubIssueNumber` / `githubIssueId` 回写数据库
-
 ## 管理后台鉴权（可选）
 
 如需保护 `/api/admin/*`：
 
 - 在 `api-server/.env` 中设置 `ADMIN_TOKEN`
-- 在 `admin-web/.env` 中设置同样的 `VITE_ADMIN_TOKEN`
+- 在 `admin-web` 构建阶段注入同样的 `VITE_ADMIN_TOKEN`
 
-本项目的烟雾测试脚本会自动读取环境变量 `ADMIN_TOKEN`，因此加了后台鉴权后仍然可以继续执行：
-
-```bash
-ADMIN_TOKEN=your-token pnpm smoke:test
-```
+当前默认的 GHCR 运行态镜像发布流程**不会自动注入该 token**，避免把环境专属值固化进通用镜像。
+如需启用它，请在受控构建环境里生成专用 admin 镜像。
 
 ## 常用脚本
 
@@ -194,6 +243,7 @@ pnpm validate:env
 pnpm validate:env -- --require-env-files
 pnpm bootstrap:dev
 pnpm build:all
+pnpm check:runtime-artifacts
 pnpm smoke:test
 pnpm preview:all
 pnpm deploy:remote
@@ -204,25 +254,11 @@ pnpm --filter app-uni build:h5
 pnpm --filter admin-web build
 ```
 
-`pnpm validate:env` 会校验：
+说明：
 
-- `api-server/.env` / `.env.example` 中的 `PORT`、`DATABASE_URL`
-- `admin-web` / `app-uni` 的 `VITE_API_BASE_URL` 是否为合法 URL，且以 `/api` 结尾
-- 如果 API 开启了 `ADMIN_TOKEN`，则后台 `VITE_ADMIN_TOKEN` 是否保持一致
-- GitHub 同步相关变量是否成对出现
-
-## 推荐本地验收流程
-
-如果你想快速确认项目可演示，推荐这条顺序：
-
-```bash
-pnpm bootstrap:dev
-pnpm validate:env -- --require-env-files
-pnpm build:all
-pnpm dev:api
-pnpm preview:all
-pnpm smoke:test
-```
+- `pnpm build:all` 适合本地开发验收。
+- `pnpm deploy:remote` / `scripts/deploy-remote.sh` 仍保留作旧的源码同步方案参考，**不是当前服务器的推荐路径**。
+- 生产 / 演示部署优先走 GHCR 运行态镜像 + runtime compose。
 
 ## 健康检查与烟雾测试
 
@@ -239,7 +275,7 @@ pnpm smoke:test
 - 题目列表
 - 前后台构建产物是否存在
 
-如果你想连同线上静态站点一起验收，也可以额外传入：
+如果想连同线上静态站点一起验收，也可以额外传入：
 
 ```bash
 APP_BASE_URL=https://your-app.example.com \
@@ -247,56 +283,45 @@ ADMIN_BASE_URL=https://your-admin.example.com \
 pnpm smoke:test
 ```
 
-## 自动化与部署
+## CI / CD
 
-已经提供两层能力：
+### CI
 
-### 1. CI
+文件：`.github/workflows/ci.yml`
 
-- 文件：`.github/workflows/ci.yml`
-- 在 PR / push 时执行：
-  - `pnpm lint`
-  - `pnpm typecheck`
-  - `pnpm build:all`
+在 PR / push 时执行：
 
-### 2. 自动部署脚手架
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm --filter api-server build`
+- `pnpm --filter app-uni build:h5`
+- `pnpm --filter admin-web build`
+- `sh scripts/check-runtime-artifacts.sh`
 
-- 文件：`.github/workflows/deploy.yml`
-- 远程脚本：`scripts/deploy-remote.sh`
-- systemd 模板：`deploy/systemd/*.service.example`
+### 运行态镜像发布
 
-`deploy-remote.sh` 默认会把“缺失 `.env` 时自动复制 example”视为风险并直接失败；
-只有显式设置 `ALLOW_ENV_EXAMPLE_FALLBACK=true` 时，才会回退到 example 配置。
+文件：`.github/workflows/deploy.yml`
 
-适合这类最小化生产方式：
+在以下情况执行：
 
-- API：systemd 常驻 Node 进程
-- 用户端 / 后台：构建后由 `serve-static.mjs` 或 Nginx 托管
-- 数据库：宿主 MySQL 或 Docker 中的 MySQL
+- `ci.yml` 在 `main` 分支对应提交上通过后自动触发
+- 或手动触发 `workflow_dispatch`
 
-详细说明看：
+工作流会：
 
-- `docs/deployment.md`
-- `docs/automated-deployment.md`
-- `docs/release-checklist.md`
+- 使用 GitHub Actions hosted runner
+- 构建 API / H5 / Admin 三个运行态镜像
+- 发布到 GHCR
+- 产出 `main` 与 `sha-*` 标签
 
-## 提交规范
-
-统一使用 Conventional Commits，例如：
-
-```bash
-git commit -m "feat(admin): improve request workflow"
-git commit -m "feat(deploy): add github actions remote deploy"
-git commit -m "chore(repo): tighten smoke test"
-```
+服务器只需 pull + up，不需要 `pnpm install`。
 
 ## 相关文档
 
-- 部署说明：`docs/deployment.md`
-- 自动部署说明：`docs/automated-deployment.md`
-- 发布检查清单：`docs/release-checklist.md`
+- 部署总览：`docs/deployment.md`
+- 自动化发布：`docs/automated-deployment.md`
 - 当前服务器说明：`docs/current-server-deployment.md`
-- Nginx 示例：`deploy/nginx/frontend-interview-bank.conf.example`
-- PM2 示例：`deploy/pm2/ecosystem.config.cjs`
-- systemd 示例：`deploy/systemd/*.service.example`
-- Docker 示例：`deploy/docker/docker-compose.nest-admin-style.yml`
+- 发布检查清单：`docs/release-checklist.md`
+- Docker 运行态 compose：`deploy/docker/docker-compose.nest-admin-style.runtime.yml`
+- Docker 本地构建 compose：`deploy/docker/docker-compose.nest-admin-style.yml`
+- Nginx 容器配置：`deploy/nginx/*.container.conf`

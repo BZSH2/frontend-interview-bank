@@ -1,240 +1,155 @@
-# 自动部署说明（GitHub Actions + SSH）
+# 自动化发布说明（GitHub Actions + GHCR）
 
-这套自动化以“**轻量、可维护、容易展示**”为目标：
+这套自动化现在的目标很明确：
 
-- CI 负责检查代码质量和构建可用性
-- Deploy workflow 负责把仓库同步到远程服务器
-- 远程服务器使用 `scripts/deploy-remote.sh` 执行环境校验、安装、构建、数据库同步、服务重启、烟雾测试
+- **GitHub Actions hosted runner** 负责构建与发布运行态镜像
+- **服务器** 只负责拉取镜像并启动
+- **不依赖** self-hosted runner
+- **不依赖** GitHub Actions 直接 SSH 回当前机器执行命令
 
-适合单台云服务器 / VPS / Linux 主机。
+这比“云端 rsync 源码到当前机器，再让当前机器 `pnpm install` / `pnpm build`”更符合这次交付目标。
 
-## 已包含的文件
+## 当前包含的工作流
 
 - `.github/workflows/ci.yml`
 - `.github/workflows/deploy.yml`
-- `scripts/deploy-remote.sh`
-- `deploy/systemd/frontend-interview-bank-*.service.example`
 
-## 部署前提
+## CI workflow 做什么
 
-远程机器需要提前具备：
-
-- Node.js 20+
-- pnpm 10+
-- MySQL 8+（或 Docker 中的 MySQL）
-- systemd（如果你采用示例里的常驻方式）
-- SSH 可登录
-
-建议代码目录：
-
-```bash
-/var/www/frontend-interview-bank/current
-```
-
-## 远程服务器首次准备
-
-### 1) 创建目录
-
-```bash
-mkdir -p /var/www/frontend-interview-bank/current
-```
-
-### 2) 准备环境变量
-
-在远程机器中手动放好这些文件：
-
-```bash
-/var/www/frontend-interview-bank/current/api-server/.env
-/var/www/frontend-interview-bank/current/app-uni/.env
-/var/www/frontend-interview-bank/current/admin-web/.env
-```
-
-可从各自的 `.env.example` 复制开始，然后建议先在远程机器执行：
-
-```bash
-cd /var/www/frontend-interview-bank/current
-pnpm validate:env -- --require-env-files
-```
-
-> 注意：GitHub Actions 的 rsync 已显式排除了这三个 `.env` 文件，自动部署不会覆盖它们。
-> `deploy-remote.sh` 现在默认也会要求这三个 `.env` 真实存在；如果缺失，会直接失败而不是静默复制 example。
-
-### 3) 安装 / 更新 systemd（可选）
-
-如果你采用本仓库附带的 systemd 模板，可在首次部署时让 workflow 自动安装，或手动执行：
-
-```bash
-cp deploy/systemd/frontend-interview-bank-api.service.example /etc/systemd/system/frontend-interview-bank-api.service
-cp deploy/systemd/frontend-interview-bank-app.service.example /etc/systemd/system/frontend-interview-bank-app.service
-cp deploy/systemd/frontend-interview-bank-admin.service.example /etc/systemd/system/frontend-interview-bank-admin.service
-
-systemctl daemon-reload
-systemctl enable frontend-interview-bank-api
-systemctl enable frontend-interview-bank-app
-systemctl enable frontend-interview-bank-admin
-```
-
-## GitHub Secrets 配置
-
-在仓库 Settings → Secrets and variables → Actions 中配置。
-
-> 注意：`deploy.yml` 的 job 默认会在 secrets 未配置时 **自动跳过**，避免在未启用自动部署的仓库里出现红叉。
-
-### 必填
-
-- `DEPLOY_HOST`：目标服务器 IP / 域名
-- `DEPLOY_USER`：SSH 用户
-- `DEPLOY_SSH_KEY`：SSH 私钥
-
-### 可选
-
-- `DEPLOY_PORT`：SSH 端口，默认 `22`
-- `DEPLOY_PATH`：部署根目录，默认 `/var/www/frontend-interview-bank`
-- `API_PORT`：API 对外端口，用于远程 smoke test，默认 `3000`
-- `ADMIN_TOKEN`：如果生产 API 开启了后台鉴权，建议一并配置，供 deploy workflow 的 smoke test 使用
-- `APP_BASE_URL`：可选，部署后额外验证前台入口页
-- `ADMIN_BASE_URL`：可选，部署后额外验证后台入口页
-
-## workflow 行为说明
-
-### CI workflow
-
-`ci.yml` 会在 PR / push 时执行：
+`ci.yml` 在 PR / push 时执行：
 
 ```bash
 pnpm install --frozen-lockfile
 pnpm lint
 pnpm typecheck
-pnpm build:all
+pnpm --filter api-server build
+VITE_API_BASE_URL=/api pnpm --filter app-uni build:h5
+VITE_API_BASE_URL=/api VITE_ADMIN_TOKEN= pnpm --filter admin-web build
+sh scripts/check-runtime-artifacts.sh
 ```
 
-### Deploy workflow
+重点新增的是最后一步：
 
-`deploy.yml` 会在以下情况触发：
+- 前后台静态产物里不允许残留 `localhost` / `127.0.0.1` 的 API 地址
 
-- push 到 `main`
+## 镜像发布 workflow 做什么
+
+`deploy.yml` 已改成“发布运行态镜像”，不再做 SSH 远程部署。
+
+触发时机：
+
+- `ci.yml` 在 `main` 分支对应提交上通过后自动触发
 - 手动触发 `workflow_dispatch`
 
-部署过程：
+发布内容：
 
-1. Checkout 仓库
-2. 安装依赖
-3. 本地 runner 先执行 `pnpm build:all`
-4. 用 rsync 把仓库同步到远程 `current/`
-5. 通过 SSH 执行 `scripts/deploy-remote.sh`
-6. 远程脚本执行：
-   - 校验 `.env` 是否存在
-   - `pnpm validate:env -- --require-env-files`
-   - `pnpm install`
-   - `pnpm --filter api-server prisma:push`
-   - `pnpm build:all`
-   - `systemctl restart ...`
-   - `pnpm smoke:test`
+- `ghcr.io/<owner>/frontend-interview-bank-api`
+- `ghcr.io/<owner>/frontend-interview-bank-web`
+- `ghcr.io/<owner>/frontend-interview-bank-admin`
 
-## 手动触发部署时的两个开关
+默认标签：
 
-`workflow_dispatch` 提供两个布尔输入：
+- `main`
+- `sha-<commit>`
 
-### `run_db_seed`
+## 为什么不再使用 SSH / rsync 远程部署
 
-- `false`：默认，适合正常生产部署
-- `true`：会在远程执行 `pnpm --filter api-server prisma:seed`
+因为当前目标服务器就是这台机器，而这次明确不希望：
 
-适合首次初始化演示环境或需要重建 demo 数据时使用。
+- 云端实时连回当前机器执行命令
+- 在当前机器上跑 `pnpm install`
+- 在当前机器上跑源码级 `build`
 
-### `install_systemd_units`
+因此自动化只负责“把可运行镜像准备好”，真正上线动作保留为服务器上的手动 `pull` / `up`。
 
-- `false`：默认，不改 systemd 文件
-- `true`：把仓库内的 `deploy/systemd/*.service.example` 安装到 `/etc/systemd/system/`
+这条链路更稳定，也更容易审计。
 
-适合第一次上线或模板更新后重新安装。
+## GHCR 权限说明
 
-## 本地手动执行远程部署脚本
+工作流发布镜像只需要 GitHub 自带的：
 
-如果你已经 SSH 到服务器，也可以直接执行：
+- `GITHUB_TOKEN`
 
-```bash
-cd /var/www/frontend-interview-bank/current
-sh scripts/deploy-remote.sh
-```
+因此当前 `deploy.yml` 不再需要：
 
-可选环境变量：
+- `DEPLOY_HOST`
+- `DEPLOY_USER`
+- `DEPLOY_SSH_KEY`
 
-```bash
-DEPLOY_ROOT=/var/www/frontend-interview-bank \
-API_PORT=3000 \
-RUN_DB_SEED=false \
-INSTALL_SYSTEMD_UNITS=false \
-RUN_SMOKE_TEST=true \
-APP_BASE_URL=https://app.example.com \
-ADMIN_BASE_URL=https://admin.example.com \
-sh scripts/deploy-remote.sh
-```
+工作流权限改为：
 
-如需保留旧的“缺失 `.env` 时自动复制 example”行为，可显式加：
+- `contents: read`
+- `packages: write`
+
+## 服务器如何消费这些镜像
+
+### 1. 准备文件
 
 ```bash
-ALLOW_ENV_EXAMPLE_FALLBACK=true sh scripts/deploy-remote.sh
+cp deploy/docker/.env.runtime.example deploy/docker/.env.runtime
+cp api-server/.env.example api-server/.env
 ```
 
-但更推荐把真实 `.env` 作为服务器预置条件。
-
-## 常见注意点
-
-### 1. `.env` 不要放进 GitHub Secrets 直接拼文件
-
-本仓库当前自动部署选择的是：
-
-- 代码走 rsync
-- 机密配置放在服务器本地 `.env`
-
-这样更简单，也更符合小团队 / 单机项目的实际维护方式。
-
-### 2. 后台开启 `ADMIN_TOKEN` 后，烟雾测试仍可用
-
-`scripts/smoke-test.sh` 已支持读取环境变量 `ADMIN_TOKEN` 并自动携带 `x-admin-token` 请求后台接口。
-
-如果你的 systemd service 或 shell 环境里能拿到该变量，部署后的 smoke test 就不会被后台鉴权拦住。
-
-脚本默认会验证：
-
-- `/api/health/live`
-- `/api/health/ready`
-- 后台接口
-- 题目列表
-- 本地构建产物
-
-如果你的静态站点已经通过 Nginx / 反向代理挂出，也可以在运行部署脚本前补充：
+### 2. 如果 GHCR 包是私有的，先登录
 
 ```bash
-APP_BASE_URL=https://app.example.com
-ADMIN_BASE_URL=https://admin.example.com
+docker login ghcr.io
 ```
 
-这样远程 smoke test 会顺手验证前后台入口页是否可访问。
+建议 PAT 至少具备：
 
-### 3. `build:all` 会再次做 lint / typecheck
+- `read:packages`
 
-这是刻意保守的做法：
+### 3. 拉取并启动
 
-- GitHub runner 先验证一遍
-- 远程机器再验证一遍
+```bash
+docker compose \
+  --env-file deploy/docker/.env.runtime \
+  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml pull
 
-这样能尽量避免“本地能构建、服务器缺依赖/配置后才翻车”的情况。
+docker compose \
+  --env-file deploy/docker/.env.runtime \
+  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml up -d
+```
 
-## 推荐上线顺序
+## 前端镜像的构建策略
 
-1. 先在远程机器手动完成一次部署，确认 `.env` / DB / systemd 都没问题
-2. 再配置 GitHub Secrets
-3. 手动点一次 `workflow_dispatch`
-4. 成功后再依赖 `push main` 自动部署
+H5 与 Admin 镜像默认使用：
 
-## 适合继续扩展的方向
+- `VITE_API_BASE_URL=/api`
 
-如果后续要升级到更完整的 CI/CD，可以在这套基础上继续加：
+然后由容器内 Nginx 反代 `/api` 到 `interview-bank-api:3000`。
 
-- GitHub Environment protection
-- Docker registry 镜像构建
-- 蓝绿/滚动发布
-- 自动回滚
-- 发布版本号 / release notes
+这样做的好处：
+
+- 镜像不绑定某个固定 IP
+- 当前机器、另一台测试机、未来云服务器都可复用同一份前端镜像
+- CI 可以直接检查产物里是否残留 localhost 地址
+
+## 关于 `VITE_ADMIN_TOKEN`
+
+默认镜像发布工作流不会往 admin-web 镜像里注入 `VITE_ADMIN_TOKEN`。
+
+原因很现实：
+
+- 它本质上是构建期常量
+- 一旦注入，值就会写进静态资源
+- 不适合作为通用镜像发布工作流的默认行为
+
+如果你确实要启用这一套弱鉴权模型，更建议在受控环境里单独构建 admin 专用镜像，而不是把环境专属 token 固化进默认发布链路。
+
+## 推荐的发布/上线顺序
+
+1. 开发完成后 push 到 `main`
+2. 等 `ci.yml` 通过
+3. `deploy.yml` 会自动接着发布 GHCR 镜像（也可手动触发）
+4. 在当前机器更新 `deploy/docker/.env.runtime` 里的镜像 tag（建议固定 `sha-*`）
+5. 手动执行 `docker compose pull && docker compose up -d`
+6. 做健康检查
+
+## 仍保留但已降级的旧方案
+
+- `scripts/deploy-remote.sh`
+- 旧的 SSH + rsync 远程部署文档/思路
+
+这些内容仍可作为参考，但已经不再是推荐路径。

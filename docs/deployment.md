@@ -1,209 +1,203 @@
 # 部署说明
 
-## 推荐部署形态
+## 先说结论
 
-当前仓库已经准备好一套适合单台服务器的轻量部署方案：
+当前仓库的推荐部署策略已经收口成：
 
-- `api-server`：Node 进程常驻（推荐 systemd / PM2）
-- `admin-web`：构建后静态托管
-- `app-uni` H5：构建后静态托管
-- `mysql`：宿主机安装或 Docker Compose 托管
+- **构建端（本地机器或 GitHub Actions hosted runner）**：安装依赖、lint / typecheck、build、运行态产物检查、发布镜像
+- **服务器**：只保存配置文件，拉取运行态镜像并启动容器
+- **当前服务器不推荐**：`pnpm install`、`pnpm bootstrap:dev`、`pnpm build:all`
 
-如果你想直接接上自动部署，请同时阅读：`docs/automated-deployment.md`。
+这是为了把“交付”和“运行”拆开：
 
-## 环境要求
+- 构建问题在本地/CI 暴露
+- 服务器只做稳定的运行态承接
+- 避免在当前机器上再做一次源码级安装和构建
 
-- Node.js 20+
-- pnpm 10+
-- MySQL 8+
-- systemd 或 PM2
-- Nginx（推荐，但非强依赖）
+## 当前机器的端口与冲突约束
 
-## 一、部署 API
+已知现状：
 
-### 1. 安装依赖
+- `vue-admin` 占用 `80`
+- `nest-admin` 使用 `35000`
 
-```bash
-pnpm install --no-frozen-lockfile
-```
+因此本项目统一使用：
 
-### 2. 配置环境变量
+- API：`36000`
+- 用户端 H5：`36080`
+- 管理后台：`36081`
+- MySQL：`33307`
 
-参考：
+## 推荐部署形态：GHCR 运行态镜像 + Runtime Compose
 
-- `api-server/.env.example`
-- `app-uni/.env.example`
-- `admin-web/.env.example`
+### 1. 构建端负责什么
 
-关键变量：
+推荐由 GitHub Actions hosted runner 承担：
 
-- `PORT`
-- `DATABASE_URL`
-- `GITHUB_OWNER`
-- `GITHUB_REPO`
-- `GITHUB_TOKEN`
-- `ADMIN_TOKEN`
-- `admin-web/.env` 中的 `VITE_API_BASE_URL`
-- `app-uni/.env` 中的 `VITE_API_BASE_URL`
+1. `pnpm install --frozen-lockfile`
+2. `pnpm lint`
+3. `pnpm typecheck`
+4. `pnpm --filter api-server build`
+5. `VITE_API_BASE_URL=/api pnpm --filter app-uni build:h5`
+6. `VITE_API_BASE_URL=/api VITE_ADMIN_TOKEN= pnpm --filter admin-web build`
+7. `sh scripts/check-runtime-artifacts.sh`
+8. 构建并发布 GHCR 运行态镜像
 
-建议在部署前先执行：
+### 2. 服务器负责什么
 
-```bash
-pnpm validate:env -- --require-env-files
-```
+服务器只做这些事：
 
-### 3. 初始化数据库
+1. 准备 `api-server/.env`
+2. 准备 `deploy/docker/.env.runtime`
+3. `docker login ghcr.io`（如果镜像仓库是私有的）
+4. `docker compose pull`
+5. `docker compose up -d`
+6. 健康检查与必要日志查看
 
-```bash
-pnpm --filter api-server prisma:push
-```
+### 3. 推荐使用的文件
 
-如果是演示环境或首次初始化，也可以再执行：
+- Runtime Compose：`deploy/docker/docker-compose.nest-admin-style.runtime.yml`
+- Runtime 环境变量示例：`deploy/docker/.env.runtime.example`
+- API 运行态镜像 Dockerfile：`deploy/docker/Dockerfile.node-runtime`
+- 当前服务器步骤：`docs/current-server-deployment.md`
+- 自动化镜像发布：`docs/automated-deployment.md`
 
-```bash
-pnpm --filter api-server prisma:seed
-```
+## 为什么前端镜像默认使用 `/api`
 
-### 4. 构建 API
+前台 H5 和后台管理台都是静态资源，过去如果在构建阶段写死 `http://服务器IP:36000/api`，会带来两个问题：
 
-```bash
-pnpm --filter api-server build
-```
+1. 镜像不可移植，一换服务器地址就要重构建
+2. 容易把 `localhost` / `127.0.0.1` 残留打进产物
 
-### 5. 托管 API
+现在默认改成：
 
-#### 方案 A：systemd（推荐）
+- 构建阶段注入 `VITE_API_BASE_URL=/api`
+- H5 / Admin 容器内的 Nginx 负责把 `/api` 反代到 `interview-bank-api:3000`
 
-参考：`deploy/systemd/frontend-interview-bank-api.service.example`
+收益：
 
-#### 方案 B：PM2
+- 前端镜像可复用
+- 不需要为不同服务器反复改构建参数
+- 服务器对外仍保留 `36000` 作为 API 独立入口，便于健康检查与调试
 
-```bash
-pm2 start deploy/pm2/ecosystem.config.cjs --only api-server
-pm2 save
-```
+## 当前服务器推荐步骤
 
-## 二、部署前台与后台静态文件
-
-### 构建
+### 1. 准备配置文件
 
 ```bash
-pnpm --filter app-uni build:h5
-pnpm --filter admin-web build
+cp deploy/docker/.env.runtime.example deploy/docker/.env.runtime
+cp api-server/.env.example api-server/.env
 ```
 
-构建产物：
+需要修改：
 
-- 用户端：`app-uni/dist/build/h5`
-- 后台：`admin-web/dist`
+- `deploy/docker/.env.runtime`：镜像地址 / tag / MySQL 密码 / 端口
+- `api-server/.env`：`DATABASE_URL` 之外的业务环境变量（如 GitHub Token、Admin Token）
 
-### 托管方式
+> `docker-compose.nest-admin-style.runtime.yml` 会在容器启动时覆盖 `DATABASE_URL`，让 API 始终连接 compose 内的 MySQL 容器；因此 `api-server/.env` 中保留本地开发地址不会影响容器内运行。
+>
+> 另外，默认发布到 GHCR 的 `admin-web` 镜像不会注入 `VITE_ADMIN_TOKEN`。如果你在 API 端启用了 `ADMIN_TOKEN`，需要额外产出一份带同值 `VITE_ADMIN_TOKEN` 的 admin 专用镜像。
 
-#### 方案 A：Nginx
-
-推荐挂载：
-
-- 用户端：`/var/www/frontend-interview-bank/app`
-- 后台：`/var/www/frontend-interview-bank/admin`
-
-示例配置见：`deploy/nginx/frontend-interview-bank.conf.example`
-
-#### 方案 B：Node 静态服务
-
-仓库自带 `scripts/serve-static.mjs`，也可直接用：
+### 2. 如果 GHCR 包是私有的，先登录
 
 ```bash
-node scripts/serve-static.mjs --root app-uni/dist/build/h5 --port 4173
-node scripts/serve-static.mjs --root admin-web/dist --port 4174
+docker login ghcr.io
 ```
 
-对应 systemd 示例：
+建议使用具备 `read:packages` 权限的 GitHub PAT。
 
-- `deploy/systemd/frontend-interview-bank-app.service.example`
-- `deploy/systemd/frontend-interview-bank-admin.service.example`
+### 3. 拉取并启动运行态服务
 
-## 三、安全建议
+```bash
+docker compose \
+  --env-file deploy/docker/.env.runtime \
+  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml pull
 
-### 1. 后台接口保护
+docker compose \
+  --env-file deploy/docker/.env.runtime \
+  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml up -d
+```
 
-如果设置：
+### 4. 验证
 
-- `api-server/.env` 中的 `ADMIN_TOKEN`
-- `admin-web/.env` 中的 `VITE_ADMIN_TOKEN`
+```bash
+curl -fsS http://127.0.0.1:36000/api/health/live
+curl -fsS http://127.0.0.1:36000/api/health/ready
+curl -I http://127.0.0.1:36080
+curl -I http://127.0.0.1:36081
+```
 
-则访问 `/api/admin/*` 时会要求 `x-admin-token`。
+## 本地/CI 端的源码构建 compose（保留，但不是当前服务器推荐路径）
 
-`pnpm validate:env -- --require-env-files` 会检查这两个 token 是否一致，避免“API 已加锁但后台构建时没带 token”这种常见配置错误。
+文件：`deploy/docker/docker-compose.nest-admin-style.yml`
 
-### 2. GitHub Token
+适用场景：
 
-- 建议使用最小权限 PAT
-- 不要把 PAT 提交进仓库
-- 如果 token 曾经暴露，立刻 rotate
+- 你想在本地或某台专门的构建机里从源码构建镜像
+- 你想先验证 compose 形态是否可用，再把镜像推到私有仓库
 
-### 3. 生产建议
+不适用场景：
 
-- 使用 HTTPS
-- Node 进程只监听内网或 `127.0.0.1`
-- 通过 Nginx 反代 `/api`
-- 管理后台建议再加一层基础认证或 IP 限制
+- 当前服务器直接部署
+- 希望“服务器完全不做 build”的场景
 
-## 四、健康检查与验收
+原因很简单：这个 compose 会在 `docker build` 时消耗源码构建时间，虽然不会在宿主机执行 `pnpm install`，但本质上仍是“在部署机做构建”。
 
-API 提供两个层级的健康接口：
+## 旧路径说明（不推荐 / 仅开发调试）
 
-- `/api/health` / `/api/health/live`：进程仍在运行
-- `/api/health/ready`：数据库可连接，服务已就绪
+以下路径仍然存在，但都已经降级为旧方案：
+
+### 1. 服务器执行 `pnpm bootstrap:dev` / `pnpm build:all`
+
+- 适合本地开发或临时调试
+- **不适合当前服务器的稳定交付**
+
+### 2. `scripts/deploy-remote.sh` / 旧的 SSH + rsync 部署
+
+- 这条链路会把源码同步到目标机并在目标机上跑 `pnpm install`、`pnpm build`
+- 与“服务器只接收运行产物或镜像”的目标冲突
+- 现在仅保留作历史参考或临时迁移工具
+
+## 健康检查与验收建议
 
 推荐验收顺序：
 
-```bash
-pnpm validate:env -- --require-env-files
-pnpm build:all
-API_BASE_URL=http://127.0.0.1:3000/api pnpm smoke:test
-```
-
-如果前台和后台已经挂到了外部域名或端口，也可以一起验证：
+### 构建端
 
 ```bash
-API_BASE_URL=https://api.example.com/api \
-APP_BASE_URL=https://app.example.com \
-ADMIN_BASE_URL=https://admin.example.com \
-pnpm smoke:test
+pnpm lint
+pnpm typecheck
+pnpm --filter api-server build
+VITE_API_BASE_URL=/api pnpm --filter app-uni build:h5
+VITE_API_BASE_URL=/api VITE_ADMIN_TOKEN= pnpm --filter admin-web build
+sh scripts/check-runtime-artifacts.sh
 ```
 
-## 五、自动部署方案
+### 服务器端
 
-仓库已提供：
+```bash
+docker compose \
+  --env-file deploy/docker/.env.runtime \
+  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml ps
 
-- `scripts/deploy-remote.sh`
-- `.github/workflows/deploy.yml`
+docker compose \
+  --env-file deploy/docker/.env.runtime \
+  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml logs --tail=200
+```
 
-适合这种流程：
+API 健康检查：
 
-1. GitHub Actions 在 runner 上先 `pnpm build:all`
-2. rsync 仓库到远程服务器
-3. 远程服务器执行 `deploy-remote.sh`
-4. 脚本完成依赖安装、数据库同步、构建、systemd 重启、烟雾测试
+- `/api/health` / `/api/health/live`
+- `/api/health/ready`
 
-详见：`docs/automated-deployment.md`
+## 相关文件速查
 
-## 六、Docker / 容器化方式
-
-如果你希望和现有容器化项目风格保持一致，可以参考：
-
-- `api-server/Dockerfile`
-- `app-uni/Dockerfile`
-- `admin-web/Dockerfile`
+- `deploy/docker/docker-compose.nest-admin-style.runtime.yml`
+- `deploy/docker/.env.runtime.example`
 - `deploy/docker/docker-compose.nest-admin-style.yml`
 - `deploy/docker/.env.nest-admin-style.example`
-
-### Docker 构建时的前端环境变量
-
-由于 `app-uni` 和 `admin-web` 是静态构建产物，部署时必须在构建阶段注入。当前仓库里的 Docker Compose 示例通过以下外层变量传入：
-
-- `APP_H5_API_BASE_URL` → `app-uni` 镜像构建参数 `VITE_API_BASE_URL`
-- `ADMIN_WEB_API_BASE_URL` → `admin-web` 镜像构建参数 `VITE_API_BASE_URL`
-- `ADMIN_WEB_TOKEN` → `admin-web` 镜像构建参数 `VITE_ADMIN_TOKEN`（如需）
-
-> 在 `docker-compose.nest-admin-style.yml` 中，容器内 API 会自动覆盖 `DATABASE_URL`，改为连接 `interview-bank-mysql:3306`。
+- `deploy/docker/Dockerfile.node-runtime`
+- `deploy/nginx/frontend-interview-bank-app.container.conf`
+- `deploy/nginx/frontend-interview-bank-admin.container.conf`
+- `.github/workflows/ci.yml`
+- `.github/workflows/deploy.yml`

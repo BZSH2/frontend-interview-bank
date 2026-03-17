@@ -25,7 +25,8 @@
     "smoke:test": "sh scripts/smoke-test.sh",
     "preview:all": "sh scripts/run-preview.sh",
     "serve:static": "node scripts/serve-static.mjs",
-    "deploy:remote": "sh scripts/deploy-remote.sh"
+    "deploy:remote": "sh scripts/deploy-remote.sh",
+    "check:runtime-artifacts": "sh scripts/check-runtime-artifacts.sh"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",

@@ -33,5 +33,19 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Build all apps
-        run: pnpm build:all
+      - name: Build API
+        run: pnpm --filter api-server build
+
+      - name: Build app-uni H5
+        env:
+          VITE_API_BASE_URL: /api
+        run: pnpm --filter app-uni build:h5
+
+      - name: Build admin-web
+        env:
+          VITE_API_BASE_URL: /api
+          VITE_ADMIN_TOKEN: ''
+        run: pnpm --filter admin-web build
+
+      - name: Check runtime artifacts
+        run: sh scripts/check-runtime-artifacts.sh

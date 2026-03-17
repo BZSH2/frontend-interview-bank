@@ -1,0 +1,7 @@
+.git
+.github
+.eslintcache
+node_modules
+**/node_modules
+**/dist
+**/.env
