@@ -64,22 +64,189 @@ function truncate(text, max) {
   return `${text.slice(0, Math.max(0, max - 1)).trim()}…`;
 }
 
-function inferDifficulty(title, explanation) {
-  const text = `${title} ${explanation}`;
+function normalizeTechTerms(input) {
+  const replacements = [
+    [/vue3/gi, 'Vue3'],
+    [/vue2/gi, 'Vue2'],
+    [/vue/gi, 'Vue'],
+    [/react/gi, 'React'],
+    [/javascript/gi, 'JavaScript'],
+    [/typescript/gi, 'TypeScript'],
+    [/node\.?js/gi, 'Node.js'],
+    [/webpack/gi, 'Webpack'],
+    [/vite/gi, 'Vite'],
+    [/jquery/gi, 'jQuery'],
+    [/axios/gi, 'Axios'],
+    [/ajax/gi, 'Ajax'],
+    [/css/gi, 'CSS'],
+    [/html/gi, 'HTML'],
+    [/http/gi, 'HTTP'],
+    [/ssr/gi, 'SSR'],
+    [/spa/gi, 'SPA'],
+    [/dom/gi, 'DOM'],
+    [/bom/gi, 'BOM'],
+    [/api/gi, 'API'],
+    [/mvvm/gi, 'MVVM'],
+    [/mvc/gi, 'MVC'],
+    [/es6/gi, 'ES6'],
+  ];
+
+  return replacements.reduce((result, [pattern, value]) => result.replace(pattern, value), input);
+}
+
+function cleanPlainText(input, options = {}) {
+  const { stripUrls = false, stripCode = false } = options;
+
+  let text = decodeHtml(input)
+    .replace(/[\uFFFD]+/g, '')
+    .replace(/\[图片:[^\]]*\]/g, ' ')
+    .replace(/```/g, ' ');
+
+  if (stripUrls) {
+    text = text.replace(/https?:\/\/\S+/gi, ' ');
+  }
+
+  if (stripCode) {
+    text = text.replace(/`/g, '');
+  }
+
+  text = normalizeTechTerms(text)
+    .replace(/_/g, ' ')
+    .replace(/有哪些有什么/g, '有哪些？有什么')
+    .replace(/吗能说说/g, '吗？能说说')
+    .replace(/\s+/g, ' ')
+    .replace(/\s*([,，。！？：；])\s*/g, '$1')
+    .replace(/([A-Za-z0-9.$+-]+)([\u4e00-\u9fa5])/g, '$1 $2')
+    .replace(/([\u4e00-\u9fa5])([A-Za-z0-9.$+-]+)/g, '$1 $2')
+    .trim();
+
+  return text;
+}
+
+function normalizeTitle(rawTitle) {
+  let title = cleanPlainText(rawTitle, { stripUrls: true, stripCode: true })
+    .replace(/^面试官[:：]\s*/, '')
+    .replace(/^解释下/, '解释一下');
 
   if (
-    /源码|原理|实现|设计|优化|性能|diff|ssr|fiber|监控|安全|权限|跨域|断点续传|单点登录|treeshaking|composition|proxy/i.test(
+    !/[？?！!]$/.test(title) &&
+    /^(什么是|为什么|如何|怎么|说说|谈谈|介绍一下|解释一下|请描述|你了解|你知道|举例说明|双向数据绑定是什么|typeof 与 instanceof 区别|== 和 ===区别)/.test(
+      title,
+    )
+  ) {
+    title = `${title}？`;
+  }
+
+  return title;
+}
+
+function isFillerLine(line) {
+  const text = cleanPlainText(line, { stripUrls: true, stripCode: true });
+
+  return (
+    !text ||
+    text === '-' ||
+    /^参考文献/.test(text) ||
+    /^PS[:：]/.test(text) ||
+    /^开始之前/.test(text) ||
+    /^回顾以前/.test(text) ||
+    /^官方对其的定义/.test(text) ||
+    /^我们(都|先|可以|常常|知道|听过)/.test(text) ||
+    /^这里没有文字/.test(text) ||
+    /^任何一个框架/.test(text) ||
+    /^在程序世界里/.test(text)
+  );
+}
+
+function normalizeStructuredLine(line) {
+  if (line === '```') {
+    return line;
+  }
+
+  if (line.startsWith('# ')) {
+    return `# ${normalizeTitle(line.slice(2))}`;
+  }
+
+  if (line.startsWith('## ')) {
+    return `## ${cleanPlainText(line.slice(3), { stripUrls: true, stripCode: true })}`;
+  }
+
+  if (line.startsWith('### ')) {
+    return `### ${cleanPlainText(line.slice(4), { stripUrls: true, stripCode: true })}`;
+  }
+
+  if (line.startsWith('- ')) {
+    const cleaned = cleanPlainText(line.slice(2), { stripUrls: false, stripCode: false });
+    return cleaned ? `- ${cleaned}` : '';
+  }
+
+  if (line.startsWith('[图片:')) {
+    return '';
+  }
+
+  return cleanPlainText(line, { stripUrls: false, stripCode: false });
+}
+
+function pickSummary(lines, fallbackTitle) {
+  for (const line of lines) {
+    if (
+      line.startsWith('#') ||
+      line.startsWith('## ') ||
+      line.startsWith('### ') ||
+      line === '```'
+    ) {
+      continue;
+    }
+
+    const plain = line.startsWith('- ') ? line.slice(2) : line;
+    const cleaned = cleanPlainText(plain, { stripUrls: true, stripCode: true });
+    if (cleaned.length < 12 || isFillerLine(cleaned)) {
+      continue;
+    }
+
+    return truncate(cleaned, 120);
+  }
+
+  return fallbackTitle;
+}
+
+function inferDifficulty(title, explanation, categoryName) {
+  const text = cleanPlainText(`${title} ${explanation}`, { stripUrls: true, stripCode: true });
+  let score = 1;
+
+  if (
+    /源码|手写|实现一个|设计一个|设计思路|底层|原理|编译|运行机制|diff|fiber|treeshaking|服务端渲染|ssr|性能优化|监控|安全|权限|跨域|断点续传|单点登录|事件循环|内存泄漏|文件上传|jwt|分页功能/i.test(
       text,
     )
   ) {
+    score += 2;
+  }
+
+  if (
+    /流程|场景|为什么|怎么做|如何|区别|优缺点|通信|生命周期|使用场景|应用场景|目录结构|路由模式/i.test(
+      text,
+    )
+  ) {
+    score += 1;
+  }
+
+  if (/什么是|有哪些|作用|概念|常用/.test(text)) {
+    score -= 1;
+  }
+
+  if (/算法与数据结构/.test(categoryName)) {
+    score += 1;
+  }
+
+  if (score >= 3) {
     return 'HARD';
   }
 
-  if (/区别|理解|场景|生命周期|通信|流程|为什么|优缺点|有哪些|怎么做|如何/i.test(text)) {
-    return 'MEDIUM';
+  if (score <= 0) {
+    return 'EASY';
   }
 
-  return 'EASY';
+  return 'MEDIUM';
 }
 
 async function fetchText(url) {
@@ -183,7 +350,7 @@ function buildAnswer(lines) {
   for (const line of lines) {
     if (line.startsWith('## ')) {
       current = {
-        heading: line.slice(3).trim(),
+        heading: cleanPlainText(line.slice(3), { stripUrls: true, stripCode: true }),
         body: [],
       };
       sections.push(current);
@@ -194,26 +361,28 @@ function buildAnswer(lines) {
       continue;
     }
 
-    if (line.startsWith('### ') || line.startsWith('[图片:') || line === '```') {
+    if (line.startsWith('### ') || line === '```') {
       continue;
     }
 
     const plain = line.startsWith('- ') ? line.slice(2).trim() : line.trim();
-    if (!plain) {
+    const cleaned = cleanPlainText(plain, { stripUrls: true, stripCode: true });
+    if (!cleaned || isFillerLine(cleaned)) {
       continue;
     }
 
     if (current.body.length < 2) {
-      current.body.push(plain);
+      current.body.push(cleaned);
     }
   }
 
   const bullets = sections
     .slice(0, 6)
+    .filter((section) => section.heading && !/参考文献|结论/.test(section.heading))
     .map((section) => {
       const lead = section.body.find(Boolean);
       if (!lead) {
-        return `- ${section.heading}`;
+        return '';
       }
 
       return `- ${section.heading}：${truncate(lead, 180)}`;
@@ -225,9 +394,11 @@ function buildAnswer(lines) {
   }
 
   const fallback = lines
-    .filter((line) => !line.startsWith('#') && !line.startsWith('[图片:') && line !== '```')
+    .filter((line) => !line.startsWith('#') && line !== '```')
+    .map((line) => cleanPlainText(line.replace(/^-\s*/, ''), { stripUrls: true, stripCode: true }))
+    .filter((line) => line && !isFillerLine(line))
     .slice(0, 5)
-    .map((line) => `- ${truncate(line.replace(/^-\s*/, ''), 180)}`);
+    .map((line) => `- ${truncate(line, 180)}`);
 
   return `可从以下几个方面回答：\n${fallback.join('\n')}`;
 }
@@ -244,30 +415,33 @@ function deriveQuestionPayload(pathname, html) {
     throw new Error(`Article body not found: ${pathname}`);
   }
 
-  const lines = toStructuredText(article);
+  const lines = toStructuredText(article).map(normalizeStructuredLine).filter(Boolean);
   const titleLine = lines.find((line) => line.startsWith('# '));
   if (!titleLine) {
     throw new Error(`Title not found: ${pathname}`);
   }
 
-  const rawTitle = titleLine.slice(2).trim();
-  const title = rawTitle.replace(/^面试官[:：]\s*/, '').trim();
+  const title = normalizeTitle(titleLine.slice(2).trim());
   const bodyLines = lines.filter((line) => line !== titleLine);
-  const summaryLine = bodyLines.find(
-    (line) =>
-      !line.startsWith('#') &&
-      !line.startsWith('- ') &&
-      !line.startsWith('[图片:') &&
-      line !== '```',
-  );
-  const summary = summaryLine ? truncate(summaryLine, 120) : title;
+  const summary = pickSummary(bodyLines, title);
   const explanation = bodyLines.join('\n');
   const answer = buildAnswer(bodyLines);
   const slug = pathname
     .split('/')
     .pop()
     .replace(/\.html$/, '');
-  const difficulty = inferDifficulty(title, explanation);
+  const difficulty = inferDifficulty(title, explanation, categoryConfig.name);
+  const tags = Array.from(
+    new Set(
+      [
+        ...DEFAULT_TAGS,
+        categoryConfig.name,
+        cleanPlainText(decodeURIComponent(slug), { stripUrls: true, stripCode: true }),
+      ]
+        .map((item) => item.replace(/\s+/g, ' ').trim())
+        .filter(Boolean),
+    ),
+  );
 
   return {
     categoryKey,
@@ -279,7 +453,7 @@ function deriveQuestionPayload(pathname, html) {
     answer,
     explanation,
     difficulty,
-    tags: [...DEFAULT_TAGS, categoryConfig.name, slug],
+    tags,
     sourceUrl: new URL(pathname, BASE_URL).toString(),
   };
 }
@@ -308,8 +482,21 @@ async function ensureCategory(name, sort) {
 async function upsertQuestion(payload, categoryId) {
   const existing = await prisma.question.findFirst({
     where: {
-      categoryId,
-      title: payload.title,
+      OR: [
+        {
+          categoryId,
+          title: payload.title,
+        },
+        {
+          explanation: {
+            is: {
+              content: {
+                contains: payload.sourceUrl,
+              },
+            },
+          },
+        },
+      ],
     },
     include: {
       explanation: true,
@@ -343,6 +530,7 @@ async function upsertQuestion(payload, categoryId) {
   await prisma.question.update({
     where: { id: existing.id },
     data: {
+      title: payload.title,
       summary: payload.summary,
       content: payload.content,
       answer: payload.answer,
