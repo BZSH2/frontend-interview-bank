@@ -1,205 +1,156 @@
-# 当前服务器部署说明
+# 当前服务器部署说明（runtime-first）
 
 > 这份说明基于当前机器实际情况整理：
 >
-> - 服务器路径：`/root/.openclaw/workspace/frontend-interview-bank`
-> - Node / pnpm / Docker 已有
-> - `systemd` 可用
-> - `nginx` / `pm2` 当前未安装
-> - 80 端口当前已被现有 `vue-admin` 容器占用
+> - 项目路径：`/root/.openclaw/workspace/frontend-interview-bank`
+> - 当前服务器已有 Docker
+> - `vue-admin` 正占用 `80`
+> - `nest-admin` 正使用 `35000`
+>
+> 因此本项目默认使用独立端口：
+>
+> - API：`36000`
+> - H5：`36080`
+> - Admin：`36081`
+> - MySQL：`33307`
 
-## 建议部署方式
+## 结论
 
-在当前服务器上，先使用以下端口直接运行：
+**当前服务器推荐部署方式只有一条：runtime-first。**
 
-- API：`3000`
-- 用户端 H5：`4173`
-- 管理后台：`4174`
-- MySQL：`33306`
+也就是：
 
-这种方式**不会干扰你现有的 `nest-admin` / `vue-admin` 容器**。
+- 本地 / GitHub Actions hosted runner：安装依赖、build、检查、发布镜像
+- 当前服务器：拉镜像并运行
 
-## 一、首次准备
+当前服务器默认**不要执行**：
 
-```bash
-cd /root/.openclaw/workspace/frontend-interview-bank
-pnpm bootstrap:dev
-pnpm build:all
-```
+- `pnpm install`
+- `pnpm bootstrap:dev`
+- `pnpm build:all`
+- 任何源码级构建
 
-## 二、手动启动验证
+---
 
-### 1. 启动 API
+## 1. 准备文件
 
-```bash
-cd /root/.openclaw/workspace/frontend-interview-bank
-pnpm dev:api
-```
-
-### 2. 启动前台 / 后台静态预览
+在服务器项目目录下执行：
 
 ```bash
 cd /root/.openclaw/workspace/frontend-interview-bank
-pnpm preview:all
+cp deploy/docker/.env.runtime.example deploy/docker/.env.runtime
+cp api-server/.env.example api-server/.env
 ```
 
-访问：
+需要重点填写：
 
-- 用户端：`http://当前服务器IP:4173`
-- 后台：`http://当前服务器IP:4174`
-- API 健康检查：`http://当前服务器IP:3000/api/health`
+### `deploy/docker/.env.runtime`
 
-## 三、systemd 长驻方式（推荐）
+- `API_RUNTIME_IMAGE`
+- `APP_RUNTIME_IMAGE`
+- `ADMIN_RUNTIME_IMAGE`
+- `MYSQL_ROOT_PASSWORD`
+- `MYSQL_PASSWORD`
+- 如需换 tag，也在这里改
 
-复制示例 service：
+### `api-server/.env`
 
-- `deploy/systemd/frontend-interview-bank-api.service.example`
-- `deploy/systemd/frontend-interview-bank-app.service.example`
-- `deploy/systemd/frontend-interview-bank-admin.service.example`
+- `GITHUB_TOKEN`（如需把讲解申请同步到 GitHub）
+- `ADMIN_TOKEN`（如需保护后台接口）
+- 其他业务环境变量
 
-到：
+> 说明：runtime compose 会自动覆盖 `PORT` / `DATABASE_URL`，因此 `api-server/.env` 中保留示例值即可。
+
+---
+
+## 2. 拉镜像并启动
+
+如果 GHCR 包是私有的，先登录：
 
 ```bash
-/etc/systemd/system/
+docker login ghcr.io
 ```
 
 然后执行：
 
 ```bash
-systemctl daemon-reload
-systemctl enable frontend-interview-bank-api
-systemctl enable frontend-interview-bank-app
-systemctl enable frontend-interview-bank-admin
-systemctl start frontend-interview-bank-api
-systemctl start frontend-interview-bank-app
-systemctl start frontend-interview-bank-admin
+docker compose \
+  --env-file deploy/docker/.env.runtime \
+  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml pull
+
+docker compose \
+  --env-file deploy/docker/.env.runtime \
+  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml up -d
 ```
 
 查看状态：
 
 ```bash
-systemctl status frontend-interview-bank-api
-systemctl status frontend-interview-bank-app
-systemctl status frontend-interview-bank-admin
+docker compose \
+  --env-file deploy/docker/.env.runtime \
+  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml ps
 ```
 
-## 四、如果后面要接入统一域名
+---
 
-由于 80 端口目前被已有容器占用，当前更适合：
-
-1. 先使用端口直连验证业务
-2. 后续再决定是否：
-   - 调整现有 `vue-admin` 的反代规则
-   - 或新装反向代理并重新分配入口
-
-在不清楚现有 80 端口容器职责前，**不建议直接抢占 80 端口**。
-
-## 五、当前服务器上的推荐操作顺序
+## 3. 验收命令
 
 ```bash
-cd /root/.openclaw/workspace/frontend-interview-bank
-pnpm bootstrap:dev
-pnpm build:all
-pnpm smoke:test
+curl -fsS http://127.0.0.1:36000/api/health/live
+curl -fsS http://127.0.0.1:36000/api/health/ready
+curl -I http://127.0.0.1:36080
+curl -I http://127.0.0.1:36081
 ```
 
-确认没问题后，再切到 systemd 常驻。
+如果要看日志：
 
-## 六、如果要对齐当前 `nest-admin` 的部署风格
+```bash
+docker compose \
+  --env-file deploy/docker/.env.runtime \
+  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml logs -f --tail=200
+```
 
-当前服务器上的 `nest-admin` / `vue-admin` 本质是：
+---
 
-- 后端：Node 容器
-- 前端：Nginx 静态容器
-- 都由 Docker 以 `restart: unless-stopped` 方式托管
+## 4. 为什么不再推荐服务器本机构建
 
-本项目已经补了同风格示例：
+因为当前项目已经明确采用下面的协作原则：
 
-- `api-server/Dockerfile`
-- `app-uni/Dockerfile`
-- `admin-web/Dockerfile`
+- 当前服务器不适合再跑 `pnpm install`
+- 重活应交给本地 / GitHub Actions hosted runner
+- 服务器只负责运行产物 / 镜像
+
+这样做的好处：
+
+- 更稳定
+- 避免服务器内存被依赖安装拖垮
+- 部署链路更可复现
+- 更容易切换到 GHCR / 官方托管 CI-CD
+
+---
+
+## 5. 非推荐路径说明
+
+以下路径仍保留在仓库中，但**不是当前服务器默认部署方式**：
+
 - `deploy/docker/docker-compose.nest-admin-style.yml`
+- systemd 示例
+- PM2 示例
+- `pnpm bootstrap:dev`
+- `pnpm build:all`
 
-推荐端口：
+它们只用于：
 
-- API：`36000`
-- 用户端：`36080`
-- 后台：`36081`
+- 本地开发
+- 临时调试
+- 历史兼容
 
-这样可以和你现有：
+---
 
-- `nest-admin`（35000）
-- `vue-admin`（80）
+## 6. 当前版本的已知边界
 
-并存，不冲突。
+截至当前说明：
 
-## 七、Docker Compose（对齐 nest-admin 风格）的实际用法
-
-先复制环境变量示例：
-
-```bash
-cp deploy/docker/.env.nest-admin-style.example deploy/docker/.env.nest-admin-style
-```
-
-默认建议保持这几个值为 `/api`：
-
-- `APP_H5_API_BASE_URL`
-- `ADMIN_WEB_API_BASE_URL`
-
-只有在“前台/后台和 API 不走同域反代、而是分域名或分机器部署”时，才需要改成完整地址。
-
-- `ADMIN_WEB_TOKEN`（可选）
-
-然后执行：
-
-```bash
-docker compose \
-  --env-file deploy/docker/.env.nest-admin-style \
-  -f deploy/docker/docker-compose.nest-admin-style.yml up -d --build
-```
-
-默认对外端口：
-
-- API：`36000`
-- 用户端：`36080`
-- 后台：`36081`
-- MySQL：`33307`
-
-这样不会和当前已经在跑的：
-
-- `nest-admin`（35000）
-- `vue-admin`（80）
-- 本地开发 MySQL（33306）
-
-产生冲突。
-
-> 说明：在 `docker-compose.nest-admin-style.yml` 中，容器内的 API 会自动覆盖 `DATABASE_URL`，改为连接 `interview-bank-mysql:3306`，不会直接使用宿主机的 `127.0.0.1:33306`。
-
-> 现在 Docker 方案里，前台和后台容器会在容器内通过 Nginx 反代 `/api` 到 `interview-bank-api`，因此不需要提前知道服务器公网 IP。
-
-- 免重建依赖的运行时 compose：`deploy/docker/docker-compose.nest-admin-style.runtime.yml`
-- 运行时产物检查脚本：`scripts/check-runtime-artifacts.sh`
-
-### 八、如果前端产物在本地构建、服务器只负责运行
-
-这更符合当前协作分工：
-
-- 本地 OpenClaw：安装依赖、构建、smoke test
-- 当前服务器：接收 dist 产物、启动容器、做部署验收
-
-服务器侧在收到本地产物后，先执行：
-
-```bash
-cd /root/.openclaw/workspace/frontend-interview-bank
-sh scripts/check-runtime-artifacts.sh
-```
-
-确认产物里没有残留 `localhost` API 地址，再执行：
-
-```bash
-docker compose \
-  --env-file deploy/docker/.env.nest-admin-style \
-  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml up -d
-```
-
-这样就不需要在当前服务器重新跑 `pnpm i` / 前端构建。
+- runtime compose 已切到预构建镜像，不再挂宿主机源码 / `dist` / `node_modules`
+- 当前服务器仍需要一次真实的 Docker / MySQL 启动验证，才能算彻底闭环
+- 如果 GHCR 包尚未发布，需要先由 GitHub Actions 将镜像推上去

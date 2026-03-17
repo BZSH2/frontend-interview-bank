@@ -1,139 +1,181 @@
-# 部署说明
+# 部署说明（runtime-first）
 
-## 推荐部署形态
+## 一句话结论
 
-适合一台 Vultr / 云服务器的最小部署方式：
+当前推荐部署路径是：
 
-- `api-server`：Node 进程托管（推荐 PM2）
-- `admin-web`：构建后由 Nginx 托管静态文件
-- `app-uni` H5：构建后由 Nginx 托管静态文件
-- `mysql`：可继续用 Docker Compose，或换成托管数据库
+- **本地 / GitHub Actions hosted runner**：安装依赖、lint、typecheck、build、检查运行态产物、发布 GHCR 镜像
+- **服务器**：准备 env、拉镜像、`docker compose up -d`
 
-## 环境要求
+当前服务器默认**不要**执行：
 
-- Node.js 20+
-- pnpm 10+
-- MySQL 8+
-- Nginx（推荐）
-- PM2（推荐）
+- `pnpm install`
+- `pnpm bootstrap:dev`
+- `pnpm build:all`
+- 任何源码级 build
 
-## 一、部署 API
+---
 
-### 1. 安装依赖
+## 1. 角色分工
+
+### 本地 / GitHub Actions hosted runner 负责
+
+- `pnpm install --no-frozen-lockfile`
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm --filter api-server build`
+- `pnpm --filter app-uni build:h5`
+- `pnpm --filter admin-web build`
+- `sh scripts/check-runtime-artifacts.sh`
+- 构建并发布 runtime 镜像到 GHCR
+
+### 服务器负责
+
+- 配置 `deploy/docker/.env.runtime`
+- 配置 `api-server/.env`
+- `docker login ghcr.io`（如需要）
+- `docker compose pull`
+- `docker compose up -d`
+- 运行后验收
+
+---
+
+## 2. 运行态部署所需文件
+
+- runtime compose：`deploy/docker/docker-compose.nest-admin-style.runtime.yml`
+- runtime env 模板：`deploy/docker/.env.runtime.example`
+- API 业务 env 模板：`api-server/.env.example`
+- 当前交付说明：`docs/delivery-handoff-2026-03-17.md`
+
+### 镜像约定
+
+默认运行态镜像：
+
+- `ghcr.io/bzsh2/frontend-interview-bank-api:main`
+- `ghcr.io/bzsh2/frontend-interview-bank-web:main`
+- `ghcr.io/bzsh2/frontend-interview-bank-admin:main`
+
+镜像发布 workflow：
+
+- `.github/workflows/runtime-images.yml`
+
+---
+
+## 3. 服务器部署步骤
+
+### 3.1 准备 env
 
 ```bash
-pnpm install --no-frozen-lockfile
+cp deploy/docker/.env.runtime.example deploy/docker/.env.runtime
+cp api-server/.env.example api-server/.env
 ```
 
-### 2. 配置环境变量
+需要至少确认：
 
-参考：`api-server/.env.example`
+- `API_RUNTIME_IMAGE`
+- `APP_RUNTIME_IMAGE`
+- `ADMIN_RUNTIME_IMAGE`
+- `MYSQL_ROOT_PASSWORD`
+- `MYSQL_PASSWORD`
+- `GITHUB_TOKEN`（如需同步 GitHub Issue）
+- `ADMIN_TOKEN`（如需保护后台接口）
 
-关键变量：
+> `api-server/.env` 中的 `PORT` / `DATABASE_URL` 在 runtime compose 下会被 compose 覆盖，不需要手动改成容器内地址。
 
-- `PORT`
-- `DATABASE_URL`
-- `GITHUB_OWNER`
-- `GITHUB_REPO`
-- `GITHUB_TOKEN`
-- `ADMIN_TOKEN`
-
-### 3. 初始化数据库
+### 3.2 拉镜像并启动
 
 ```bash
-pnpm --filter api-server prisma:push
-pnpm --filter api-server prisma:seed
+docker compose \
+  --env-file deploy/docker/.env.runtime \
+  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml pull
+
+docker compose \
+  --env-file deploy/docker/.env.runtime \
+  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml up -d
 ```
 
-### 4. 构建 API
+如果 GHCR 包是私有的，先登录：
 
 ```bash
-pnpm --filter api-server build
+docker login ghcr.io
 ```
 
-### 5. 使用 PM2 托管
+---
+
+## 4. 验收命令
 
 ```bash
-pm2 start deploy/pm2/ecosystem.config.cjs --only api-server
-pm2 save
+curl -fsS http://127.0.0.1:36000/api/health/live
+curl -fsS http://127.0.0.1:36000/api/health/ready
+curl -I http://127.0.0.1:36080
+curl -I http://127.0.0.1:36081
 ```
 
-## 二、部署前台与后台静态文件
-
-### 构建
+如果需要查看容器状态：
 
 ```bash
-pnpm --filter app-uni build:h5
-pnpm --filter admin-web build
+docker compose \
+  --env-file deploy/docker/.env.runtime \
+  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml ps
 ```
 
-构建产物：
+---
 
-- 用户端：`app-uni/dist/build/h5`
-- 后台：`admin-web/dist`
+## 5. 端口规划
 
-### Nginx 推荐挂载
+统一端口：
 
-- 用户端挂到：`/var/www/frontend-interview-bank/app`
-- 后台挂到：`/var/www/frontend-interview-bank/admin`
+- API：`36000`
+- H5：`36080`
+- Admin：`36081`
+- MySQL：`33307`
 
-示例配置见：
+避让现有服务：
 
-- `deploy/nginx/frontend-interview-bank.conf.example`
+- `vue-admin`：`80`
+- `nest-admin`：`35000`
 
-## 三、安全建议
+---
 
-### 1. 后台接口保护
+## 6. CI / 镜像发布
 
-如果设置：
+### 质量检查
 
-- `api-server/.env` 中的 `ADMIN_TOKEN`
-- `admin-web/.env` 中的 `VITE_ADMIN_TOKEN`
+`.github/workflows/ci.yml` 负责：
 
-则访问 `/api/admin/*` 时会要求 `x-admin-token`。
+- lint
+- typecheck
+- build api-server
+- build app-uni h5
+- build admin-web
+- `sh scripts/check-runtime-artifacts.sh`
 
-### 2. GitHub Token
+### 镜像发布
 
-- 建议使用最小权限 PAT
-- 不要把 PAT 提交进仓库
-- 如果 token 曾经暴露，立刻 rotate
+`.github/workflows/runtime-images.yml` 负责：
 
-### 3. 生产环境
+- 使用 GitHub Actions hosted runner 构建 runtime 镜像
+- 发布到 GHCR
+- 默认产出 `main` 和 `sha-*` 标签
 
-- 使用 HTTPS
-- Node 进程只监听内网或 `127.0.0.1`
-- 通过 Nginx 反代 `/api`
-- 管理后台建议再加一层基础认证或 IP 限制
+---
 
-## 四、对齐 nest-admin 风格的部署方式
+## 7. 保留但不推荐的路径
 
-如果你希望和当前服务器上的 `nest-admin` 保持一致，可以直接参考：
+下面这些方案保留用于本地开发、临时调试或历史兼容：
 
-- `api-server/Dockerfile`
-- `app-uni/Dockerfile`
-- `admin-web/Dockerfile`
 - `deploy/docker/docker-compose.nest-admin-style.yml`
+- `pnpm bootstrap:dev`
+- PM2 / systemd 源码部署
 
-这是典型的：
+它们**不作为当前服务器默认部署方案**。
 
-- 后端 Node 镜像
-- 前台/后台 Nginx 静态镜像
-- Docker Compose 编排
-- `restart: unless-stopped` 常驻
+---
 
-### Docker 构建时的前端环境变量
+## 8. 已知边界
 
-由于 `app-uni` 和 `admin-web` 是静态构建产物，部署时必须在构建阶段注入：
+截至当前文档版本：
 
-- `APP_H5_API_BASE_URL`
-- `ADMIN_WEB_API_BASE_URL`
-- `ADMIN_WEB_TOKEN`（如需）
-
-参考：`deploy/docker/.env.nest-admin-style.example`
-
-> 说明：在 `docker-compose.nest-admin-style.yml` 中，容器内的 API 会自动覆盖 `DATABASE_URL`，改为连接 `interview-bank-mysql:3306`，不会直接使用宿主机的 `127.0.0.1:33306`。
-
-> 当前 Docker 方案推荐前台/后台使用相对路径 `/api`，由容器内 Nginx 反代到 API 容器；只有前端与 API 分域/分机部署时，才改为完整地址。
-
-- 免重建依赖的运行时 compose：`deploy/docker/docker-compose.nest-admin-style.runtime.yml`
-- 运行时 compose 适合“本地完成构建 → 服务器只挂载 dist 和运行”的协作方式；上线前可用 `scripts/check-runtime-artifacts.sh` 快速检查产物里是否还残留 `localhost` API 地址。
+- runtime 链路已经从“挂宿主机源码 + dist + node_modules”收口为“预构建镜像运行”
+- 文档和 workflow 已统一到 runtime-first
+- 如果尚未在目标机器实际 `docker compose up -d` 并跑通数据库，则仍不能视为“真机上线闭环已完成”

@@ -6,10 +6,10 @@ services:
     container_name: interview-bank-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_me_root_password}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-frontend_interview_bank}
       MYSQL_USER: ${MYSQL_USER:-interview_app}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-interview_app_123}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change_me_app_password}
     ports:
       - '${MYSQL_HOST_PORT:-33307}:3306'
     healthcheck:
@@ -21,7 +21,7 @@ services:
           '-h',
           '127.0.0.1',
           '-uroot',
-          '-p${MYSQL_ROOT_PASSWORD:-root123456}',
+          '-p${MYSQL_ROOT_PASSWORD:-change_me_root_password}',
         ]
       interval: 10s
       timeout: 5s
@@ -30,54 +30,50 @@ services:
       - interview_bank_runtime_mysql_data:/var/lib/mysql
 
   interview-bank-api:
-    # 运行态只需要 Node.js 执行 dist/main.js。
-    # 注意：api-server 使用 Prisma，需要正确的 OpenSSL 检测能力。
-    # 这里用一个“slim + openssl”的运行时镜像（Dockerfile.node-runtime）来保证稳定。
-    build:
-      context: .
-      dockerfile: Dockerfile.node-runtime
-    image: interview-bank-node-runtime:20-slim-openssl
+    image: ${API_RUNTIME_IMAGE:-ghcr.io/bzsh2/frontend-interview-bank-api:main}
     container_name: interview-bank-api
     restart: unless-stopped
-    working_dir: /workspace/api-server
-    command:
-      ['sh', '-lc', './node_modules/.bin/prisma db push --skip-generate && node dist/main.js']
     env_file:
       - ../../api-server/.env
     environment:
-      DATABASE_URL: mysql://${MYSQL_USER:-interview_app}:${MYSQL_PASSWORD:-interview_app_123}@interview-bank-mysql:3306/${MYSQL_DATABASE:-frontend_interview_bank}
+      DATABASE_URL: mysql://${MYSQL_USER:-interview_app}:${MYSQL_PASSWORD:-change_me_app_password}@interview-bank-mysql:3306/${MYSQL_DATABASE:-frontend_interview_bank}
       PORT: 3000
-    volumes:
-      - ../../:/workspace
     ports:
       - '${API_HOST_PORT:-36000}:3000'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health/live').then((res) => { if (!res.ok) process.exit(1); }).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
     depends_on:
       interview-bank-mysql:
         condition: service_healthy
 
   interview-bank-web:
-    image: docker.m.daocloud.io/library/nginx:1.27-alpine
+    image: ${APP_RUNTIME_IMAGE:-ghcr.io/bzsh2/frontend-interview-bank-web:main}
     container_name: interview-bank-web
     restart: unless-stopped
-    volumes:
-      - ../../app-uni/dist/build/h5:/usr/share/nginx/html:ro
-      - ../nginx/app-uni.container.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
       - '${APP_HOST_PORT:-36080}:80'
     depends_on:
-      - interview-bank-api
+      interview-bank-api:
+        condition: service_healthy
 
   interview-bank-admin:
-    image: docker.m.daocloud.io/library/nginx:1.27-alpine
+    image: ${ADMIN_RUNTIME_IMAGE:-ghcr.io/bzsh2/frontend-interview-bank-admin:main}
     container_name: interview-bank-admin
     restart: unless-stopped
-    volumes:
-      - ../../admin-web/dist:/usr/share/nginx/html:ro
-      - ../nginx/admin-web.container.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
       - '${ADMIN_HOST_PORT:-36081}:80'
     depends_on:
-      - interview-bank-api
+      interview-bank-api:
+        condition: service_healthy
 
 volumes:
   interview_bank_runtime_mysql_data:

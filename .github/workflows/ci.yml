@@ -9,6 +9,8 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,3 +34,15 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+      - name: Build api-server
+        run: pnpm --filter api-server build
+
+      - name: Build app-uni h5
+        run: pnpm --filter app-uni build:h5
+
+      - name: Build admin-web
+        run: pnpm --filter admin-web build
+
+      - name: Check runtime artifacts
+        run: sh scripts/check-runtime-artifacts.sh
