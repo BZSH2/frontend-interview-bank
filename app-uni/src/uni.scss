@@ -1,6 +1,29 @@
-$brand-color: #1677ff;
-$success-color: #00b578;
-$text-color: #1f2329;
-$sub-text-color: #646a73;
-$border-color: #e5e6eb;
-$background-color: #f5f7fa;
+$brand-color: #7c4dff;
+$brand-secondary-color: #4f8cff;
+$brand-tertiary-color: #45c4ff;
+$accent-pink-color: #ff6fb7;
+$success-color: #12b886;
+$text-color: #181c2a;
+$sub-text-color: #667085;
+$muted-text-color: #98a2b3;
+$border-color: #e7e9f4;
+$background-color: #f5f4ff;
+$card-background: rgba(255, 255, 255, 0.96);
+$soft-purple-background: #f1ecff;
+$soft-blue-background: #eef5ff;
+$soft-pink-background: #fff0f8;
+$soft-green-background: #ecfff7;
+$danger-background: #fff1f3;
+$danger-color: #e11d48;
+$warning-background: #fff7e8;
+$warning-color: #d97706;
+$card-shadow: 0 18rpx 48rpx rgba(109, 96, 190, 0.12);
+$card-shadow-strong: 0 24rpx 64rpx rgba(109, 96, 190, 0.18);
+$brand-gradient: linear-gradient(135deg, #7c4dff 0%, #5b8cff 55%, #45c4ff 100%);
+$brand-gradient-soft: linear-gradient(
+  135deg,
+  rgba(124, 77, 255, 0.14) 0%,
+  rgba(91, 140, 255, 0.12) 60%,
+  rgba(69, 196, 255, 0.1) 100%
+);
+$accent-gradient: linear-gradient(135deg, #ff6fb7 0%, #ff8a5b 100%);

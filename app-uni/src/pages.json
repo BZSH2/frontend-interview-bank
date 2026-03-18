@@ -34,7 +34,7 @@
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "前端面试题库",
-    "navigationBarBackgroundColor": "#ffffff",
-    "backgroundColor": "#f5f7fa"
+    "navigationBarBackgroundColor": "#f8f6ff",
+    "backgroundColor": "#f5f4ff"
   }
 }

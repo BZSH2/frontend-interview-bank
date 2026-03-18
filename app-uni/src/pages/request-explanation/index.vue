@@ -102,12 +102,20 @@ onLoad((options) => {
     </view>
 
     <template v-else>
+      <view class="hero-card">
+        <view class="hero-card__badge">💡 Explain Request</view>
+        <view class="hero-card__title">申请系统补充这道题的讲解</view>
+        <view class="hero-card__desc"
+          >告诉系统你更想看哪种补充方向，比如真实追问、代码示例、性能分析或易错点总结。</view
+        >
+      </view>
+
       <view class="card">
         <view class="card__label">题目</view>
         <view class="card__title">{{ title || `题目 #${questionId}` }}</view>
       </view>
 
-      <view class="card">
+      <view class="card card--highlight">
         <view class="card__label">你想补充的讲解方向</view>
         <textarea
           v-model="note"
@@ -115,8 +123,10 @@ onLoad((options) => {
           maxlength="300"
           placeholder="比如：希望加真实面试追问、代码示例、性能场景分析..."
         />
-        <view class="card__hint">备注为选填；仅输入空格时会自动按“未填写”处理。</view>
-        <view class="card__count">{{ noteLength }}/300</view>
+        <view class="card__footer">
+          <view class="card__hint">备注为选填；仅输入空格时会自动按“未填写”处理。</view>
+          <view class="card__count">{{ noteLength }}/300</view>
+        </view>
       </view>
 
       <button
@@ -139,60 +149,120 @@ onLoad((options) => {
   padding: 24rpx;
 }
 
+.hero-card,
 .card,
 .error-card {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
-  padding: 28rpx;
-  border-radius: 20rpx;
-  background: #fff;
+  padding: 30rpx;
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  border-radius: 28rpx;
+  background: $card-background;
+  box-shadow: $card-shadow;
 }
 
-.card {
-  &__label {
-    color: #86909c;
-    font-size: 24rpx;
+.hero-card {
+  background: $brand-gradient;
+  color: #fff;
+
+  &__badge {
+    align-self: flex-start;
+    padding: 10rpx 20rpx;
+    border-radius: 999rpx;
+    background: rgba(255, 255, 255, 0.16);
+    font-size: 22rpx;
+    font-weight: 600;
   }
 
   &__title {
-    font-size: 32rpx;
+    font-size: 36rpx;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  &__desc {
+    color: rgba(255, 255, 255, 0.92);
+    line-height: 1.72;
+    font-size: 25rpx;
+  }
+}
+
+.card {
+  &--highlight {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(247, 244, 255, 0.98) 100%
+    );
+  }
+
+  &__label {
+    color: $muted-text-color;
+    font-size: 24rpx;
     font-weight: 600;
+  }
+
+  &__title {
+    color: $text-color;
+    font-size: 34rpx;
+    font-weight: 700;
+    line-height: 1.4;
   }
 
   &__textarea {
     width: 100%;
-    min-height: 220rpx;
+    min-height: 240rpx;
+    padding: 22rpx 24rpx;
+    border-radius: 22rpx;
+    background: #f7f7fc;
+    line-height: 1.7;
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 16rpx;
+    align-items: flex-end;
   }
 
   &__hint {
-    color: #86909c;
+    flex: 1;
+    color: $sub-text-color;
     font-size: 24rpx;
-    line-height: 1.6;
+    line-height: 1.62;
   }
 
   &__count {
-    align-self: flex-end;
-    color: #86909c;
-    font-size: 24rpx;
+    flex-shrink: 0;
+    padding: 8rpx 14rpx;
+    border-radius: 999rpx;
+    background: $soft-purple-background;
+    color: $brand-color;
+    font-size: 22rpx;
+    font-weight: 600;
   }
 }
 
 .error-card {
-  background: #fff1f0;
+  background: $danger-background;
 
   &__text {
-    color: #cf1322;
-    line-height: 1.6;
+    color: $danger-color;
+    line-height: 1.68;
   }
 }
 
 .submit-btn {
   margin-top: 8rpx;
+  border-radius: 999rpx;
+  font-size: 28rpx;
+  font-weight: 700;
 
   &--primary {
-    background: #1677ff;
+    background: $brand-gradient;
     color: #fff;
+    box-shadow: 0 18rpx 40rpx rgba(124, 77, 255, 0.22);
   }
 }
 </style>

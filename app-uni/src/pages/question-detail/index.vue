@@ -135,66 +135,89 @@ onPullDownRefresh(async () => {
 
     <view v-else-if="error" class="error-card">
       <view class="error-card__text">{{ error }}</view>
-      <button class="error-card__button" @click="loadDetail">重试</button>
+      <button class="error-card__button" @click="loadDetail">重新加载</button>
     </view>
 
     <template v-else-if="question">
-      <view class="card">
-        <view class="card__title">{{ question.title }}</view>
-        <view class="card__meta">
-          <text>{{ question.category.name }}</text>
-          <text>{{ difficultyLabel }}</text>
-          <text>{{ question.hasExplanation ? '已有讲解' : '暂无讲解' }}</text>
+      <view class="hero-card">
+        <view class="hero-card__badges">
+          <text class="hero-card__badge hero-card__badge--category">{{
+            question.category.name
+          }}</text>
+          <text class="hero-card__badge hero-card__badge--difficulty">{{ difficultyLabel }}</text>
+          <text
+            class="hero-card__badge"
+            :class="
+              question.hasExplanation ? 'hero-card__badge--ready' : 'hero-card__badge--pending'
+            "
+          >
+            {{ question.hasExplanation ? '已有讲解' : '暂无讲解' }}
+          </text>
         </view>
-        <view v-if="question.tags?.length" class="card__tags">
-          <text v-for="tag in question.tags" :key="tag" class="card__tag">{{ tag }}</text>
+        <view class="hero-card__title">{{ question.title }}</view>
+        <view v-if="question.tags?.length" class="hero-card__tags">
+          <text v-for="tag in question.tags" :key="tag" class="hero-card__tag"># {{ tag }}</text>
         </view>
-        <view class="card__content">{{ question.content }}</view>
+        <view class="hero-card__content">{{ question.content }}</view>
       </view>
 
-      <view class="card">
-        <view class="card__section-title">参考答案</view>
-        <view class="card__content">{{ question.answer || '暂未补充' }}</view>
+      <view class="section-card">
+        <view class="section-card__header">
+          <view class="section-card__title">参考答案</view>
+          <view class="section-card__label">Answer</view>
+        </view>
+        <view class="section-card__content">{{ question.answer || '暂未补充' }}</view>
       </view>
 
-      <view v-if="question.explanationContent" class="card card--highlight">
-        <view class="card__section-header">
-          <view class="card__section-title">系统讲解</view>
-          <view v-if="explanationTimeText" class="card__section-time">{{
+      <view v-if="question.explanationContent" class="section-card section-card--highlight">
+        <view class="section-card__header">
+          <view>
+            <view class="section-card__title">系统讲解</view>
+            <view class="section-card__sub">更适合面试复盘和追问准备的结构化讲解</view>
+          </view>
+          <view v-if="explanationTimeText" class="section-card__time">{{
             explanationTimeText
           }}</view>
         </view>
-        <view v-if="explanationSourceLabel || explanationFilePathText" class="card__section-meta">
-          <text v-if="explanationSourceLabel" class="card__source-tag">{{
+        <view v-if="explanationSourceLabel || explanationFilePathText" class="section-card__meta">
+          <text v-if="explanationSourceLabel" class="section-card__source-tag">{{
             explanationSourceLabel
           }}</text>
-          <text v-if="explanationFilePathText" class="card__section-path">{{
+          <text v-if="explanationFilePathText" class="section-card__path">{{
             explanationFilePathText
           }}</text>
         </view>
         <!-- #ifdef H5 -->
-        <VditorPreviewH5 class="card__markdown" :source="question.explanationContent" />
+        <VditorPreviewH5 class="section-card__markdown" :source="question.explanationContent" />
         <!-- #endif -->
         <!-- #ifndef H5 -->
-        <MarkdownViewer class="card__markdown" :source="question.explanationContent" />
+        <MarkdownViewer class="section-card__markdown" :source="question.explanationContent" />
         <!-- #endif -->
       </view>
 
-      <view v-if="question.hasExplanation || requestStatus || requestStatusError" class="card">
-        <view class="card__section-title">讲解申请状态</view>
+      <view
+        v-if="question.hasExplanation || requestStatus || requestStatusError"
+        class="section-card"
+      >
+        <view class="section-card__header">
+          <view class="section-card__title">讲解申请状态</view>
+          <view class="section-card__label">Request</view>
+        </view>
 
-        <view v-if="question.hasExplanation" class="card__content">
+        <view v-if="question.hasExplanation" class="section-card__content">
           该题已具备系统讲解内容，当前不需要重复申请。
         </view>
         <template v-else-if="requestStatus">
-          <view class="card__content">{{ requestSummary }}</view>
+          <view class="section-card__content">{{ requestSummary }}</view>
           <button class="action-btn action-btn--primary" @click="navigateToRequest">
             {{ requestStatus.hasRequest ? '我也想看这题讲解' : '申请新增讲解' }}
           </button>
         </template>
         <template v-else>
-          <view class="card__content card__content--error">{{ requestStatusError }}</view>
-          <view class="card__actions">
+          <view class="section-card__content section-card__content--error">{{
+            requestStatusError
+          }}</view>
+          <view class="section-card__actions">
             <button class="action-btn" @click="loadRequestStatus">重试加载状态</button>
             <button class="action-btn action-btn--primary" @click="navigateToRequest">
               直接申请新增讲解
@@ -214,33 +237,64 @@ onPullDownRefresh(async () => {
   padding: 24rpx;
 }
 
-.card,
+.hero-card,
+.section-card,
 .state-card,
 .error-card {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
-  padding: 28rpx;
-  border-radius: 20rpx;
-  background: #fff;
+  padding: 30rpx;
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  border-radius: 28rpx;
+  background: $card-background;
+  box-shadow: $card-shadow;
 }
 
-.card {
-  &--highlight {
-    border: 1px solid #d6e4ff;
-    background: #f8fbff;
+.hero-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 245, 255, 0.98) 100%);
+
+  &__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10rpx;
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8rpx 16rpx;
+    border-radius: 999rpx;
+    font-size: 22rpx;
+    font-weight: 600;
+
+    &--category {
+      background: $soft-purple-background;
+      color: $brand-color;
+    }
+
+    &--difficulty {
+      background: $soft-blue-background;
+      color: $brand-secondary-color;
+    }
+
+    &--ready {
+      background: $soft-green-background;
+      color: $success-color;
+    }
+
+    &--pending {
+      background: $warning-background;
+      color: $warning-color;
+    }
   }
 
   &__title {
-    font-size: 34rpx;
+    color: $text-color;
+    font-size: 38rpx;
     font-weight: 700;
-  }
-
-  &__meta {
-    display: flex;
-    gap: 16rpx;
-    color: #86909c;
-    font-size: 24rpx;
+    line-height: 1.35;
   }
 
   &__tags {
@@ -252,55 +306,93 @@ onPullDownRefresh(async () => {
   &__tag {
     padding: 8rpx 16rpx;
     border-radius: 999rpx;
-    background: #f2f3f5;
-    color: #4e5969;
+    background: #f4f5fb;
+    color: #7a8091;
     font-size: 22rpx;
   }
 
-  &__section-header {
+  &__content {
+    color: $sub-text-color;
+    line-height: 1.82;
+    white-space: pre-wrap;
+  }
+}
+
+.section-card {
+  &--highlight {
+    border-color: rgba(124, 77, 255, 0.12);
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(245, 248, 255, 0.98) 100%
+    );
+  }
+
+  &__header {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
     gap: 16rpx;
-    align-items: center;
   }
 
-  &__section-title {
-    font-size: 28rpx;
-    font-weight: 600;
+  &__title {
+    color: $text-color;
+    font-size: 30rpx;
+    font-weight: 700;
   }
 
-  &__section-time {
-    color: #86909c;
+  &__label {
+    padding: 8rpx 16rpx;
+    border-radius: 999rpx;
+    background: $brand-gradient-soft;
+    color: $brand-color;
+    font-size: 22rpx;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  &__sub {
+    margin-top: 6rpx;
+    color: $sub-text-color;
+    font-size: 24rpx;
+    line-height: 1.6;
+  }
+
+  &__time {
+    flex-shrink: 0;
+    color: $muted-text-color;
     font-size: 22rpx;
   }
 
-  &__section-meta {
+  &__meta {
     display: flex;
     flex-wrap: wrap;
     gap: 12rpx;
     align-items: center;
   }
 
-  &__section-path {
-    color: #86909c;
+  &__source-tag {
+    padding: 8rpx 16rpx;
+    border-radius: 999rpx;
+    background: $soft-blue-background;
+    color: $brand-secondary-color;
     font-size: 22rpx;
+    font-weight: 600;
   }
 
-  &__source-tag {
-    padding: 4rpx 14rpx;
-    border-radius: 999rpx;
-    background: #e8f3ff;
-    color: #1677ff;
+  &__path {
+    color: $muted-text-color;
     font-size: 22rpx;
-    line-height: 1.5;
   }
 
   &__content {
+    color: $sub-text-color;
     line-height: 1.8;
     white-space: pre-wrap;
 
     &--error {
-      color: #cf1322;
+      color: $danger-color;
     }
   }
 
@@ -316,33 +408,39 @@ onPullDownRefresh(async () => {
 }
 
 .state-card {
-  color: #86909c;
+  color: $muted-text-color;
 }
 
 .error-card {
-  background: #fff1f0;
+  background: $danger-background;
 
   &__text {
-    color: #cf1322;
-    line-height: 1.6;
+    color: $danger-color;
+    line-height: 1.68;
   }
 
   &__button {
     align-self: flex-start;
-    padding: 0 24rpx;
-    border: 1px solid #ffccc7;
+    padding: 0 28rpx;
     border-radius: 999rpx;
     background: #fff;
-    color: #cf1322;
+    color: $danger-color;
+    font-size: 24rpx;
   }
 }
 
 .action-btn {
-  margin-top: 8rpx;
+  padding: 0 30rpx;
+  border-radius: 999rpx;
+  background: #fff;
+  color: $brand-color;
+  border: 1px solid rgba(124, 77, 255, 0.16);
+  font-size: 24rpx;
 
   &--primary {
-    background: #1677ff;
+    background: $brand-gradient;
     color: #fff;
+    border: none;
   }
 }
 </style>

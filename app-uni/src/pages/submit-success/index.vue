@@ -69,6 +69,7 @@ onLoad((options) => {
 <template>
   <view class="page">
     <view class="result-card">
+      <view class="result-card__halo"></view>
       <view class="result-card__icon">🎉</view>
       <view class="result-card__title">提交成功</view>
       <view class="result-card__desc">{{ resultText }}</view>
@@ -78,10 +79,16 @@ onLoad((options) => {
       <view v-if="title" class="result-card__sub">{{ title }}</view>
 
       <view class="result-card__actions">
-        <button v-if="questionId" class="result-card__button" @click="goToQuestionDetail">
+        <button
+          v-if="questionId"
+          class="result-card__button result-card__button--primary"
+          @click="goToQuestionDetail"
+        >
           返回题目详情
         </button>
-        <navigator class="result-card__action" url="/pages/question-list/index"
+        <navigator
+          class="result-card__button result-card__button--secondary"
+          url="/pages/question-list/index"
           >继续浏览题库</navigator
         >
       </view>
@@ -99,65 +106,110 @@ onLoad((options) => {
 }
 
 .result-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16rpx;
+  gap: 18rpx;
   width: 100%;
-  padding: 48rpx 32rpx;
-  border-radius: 24rpx;
-  background: #fff;
+  padding: 54rpx 34rpx;
+  border-radius: 30rpx;
+  background: $card-background;
+  box-shadow: $card-shadow-strong;
   text-align: center;
+  overflow: hidden;
+
+  &__halo {
+    position: absolute;
+    top: -90rpx;
+    right: -60rpx;
+    width: 260rpx;
+    height: 260rpx;
+    border-radius: 50%;
+    background: rgba(124, 77, 255, 0.12);
+  }
 
   &__icon {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 132rpx;
+    height: 132rpx;
+    border-radius: 50%;
+    background: $brand-gradient-soft;
     font-size: 72rpx;
   }
 
   &__title {
-    font-size: 36rpx;
+    position: relative;
+    z-index: 1;
+    color: $text-color;
+    font-size: 38rpx;
     font-weight: 700;
   }
 
   &__desc {
-    line-height: 1.6;
-    color: #646a73;
+    position: relative;
+    z-index: 1;
+    line-height: 1.72;
+    color: $sub-text-color;
   }
 
   &__status {
+    position: relative;
+    z-index: 1;
     padding: 10rpx 20rpx;
     border-radius: 999rpx;
     font-size: 24rpx;
+    font-weight: 600;
 
     &--github_synced {
-      background: #e8ffea;
-      color: #237804;
+      background: $soft-green-background;
+      color: $success-color;
     }
 
     &--local_only {
-      background: #fff7e6;
-      color: #d46b08;
+      background: $warning-background;
+      color: $warning-color;
     }
   }
 
   &__sub {
-    color: #86909c;
+    position: relative;
+    z-index: 1;
+    color: $muted-text-color;
     font-size: 24rpx;
   }
 
   &__actions {
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     gap: 16rpx;
     width: 100%;
+    margin-top: 10rpx;
   }
 
-  &__button,
-  &__action {
+  &__button {
     width: 100%;
     padding: 16rpx 28rpx;
     border-radius: 999rpx;
-    background: #1677ff;
-    color: #fff;
+    font-size: 28rpx;
+    font-weight: 700;
+
+    &--primary {
+      background: $brand-gradient;
+      color: #fff;
+    }
+
+    &--secondary {
+      background: #fff;
+      color: $brand-color;
+      border: 1px solid rgba(124, 77, 255, 0.16);
+    }
   }
 }
 </style>

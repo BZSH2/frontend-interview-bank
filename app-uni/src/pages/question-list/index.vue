@@ -195,76 +195,103 @@ onPullDownRefresh(async () => {
 
 <template>
   <view class="page">
-    <view class="toolbar">
+    <view class="list-hero">
+      <view class="list-hero__eyebrow">Smart Practice</view>
+      <view class="list-hero__title">按你的节奏刷题</view>
+      <view class="list-hero__desc"
+        >用关键词、难度和分类快速缩小范围，把练习过程做得更轻、更聚焦。</view
+      >
+    </view>
+
+    <view class="toolbar-card">
       <input
         v-model="keywordInput"
-        class="toolbar__input"
+        class="toolbar-card__input"
         confirm-type="search"
         placeholder="搜索题目标题 / 摘要 / 标签 / 关键词"
         @confirm="handleSearch"
       />
-      <button class="toolbar__button toolbar__button--primary" size="mini" @click="handleSearch">
-        搜索
-      </button>
-      <button
-        v-if="hasActiveFilters"
-        class="toolbar__button toolbar__button--ghost"
-        size="mini"
-        @click="resetFilters"
-      >
-        重置
-      </button>
+      <view class="toolbar-card__actions">
+        <button
+          class="toolbar-card__button toolbar-card__button--primary"
+          size="mini"
+          @click="handleSearch"
+        >
+          搜索
+        </button>
+        <button
+          v-if="hasActiveFilters"
+          class="toolbar-card__button toolbar-card__button--ghost"
+          size="mini"
+          @click="resetFilters"
+        >
+          重置
+        </button>
+      </view>
     </view>
 
-    <scroll-view class="filter-scroll" scroll-x>
-      <view class="filter-row">
-        <view
-          v-for="item in difficultyOptions"
-          :key="item.value || 'ALL'"
-          class="filter-chip"
-          :class="{ 'filter-chip--active': difficulty === item.value }"
-          @click="selectDifficulty(item.value)"
-        >
-          {{ item.label }}
+    <view class="filter-panel">
+      <view class="filter-panel__label">难度筛选</view>
+      <scroll-view class="filter-scroll" scroll-x>
+        <view class="filter-row">
+          <view
+            v-for="item in difficultyOptions"
+            :key="item.value || 'ALL'"
+            class="filter-chip"
+            :class="{ 'filter-chip--active': difficulty === item.value }"
+            @click="selectDifficulty(item.value)"
+          >
+            {{ item.label }}
+          </view>
         </view>
-      </view>
-    </scroll-view>
+      </scroll-view>
+    </view>
 
-    <scroll-view class="category-scroll" scroll-x>
-      <view class="category-row">
-        <view
-          class="category-chip"
-          :class="{ 'category-chip--active': !categoryId }"
-          @click="selectCategory()"
-        >
-          全部分类
+    <view class="filter-panel filter-panel--soft">
+      <view class="filter-panel__label">分类筛选</view>
+      <scroll-view class="category-scroll" scroll-x>
+        <view class="category-row">
+          <view
+            class="category-chip"
+            :class="{ 'category-chip--active': !categoryId }"
+            @click="selectCategory()"
+          >
+            全部分类
+          </view>
+          <view
+            v-for="item in categories"
+            :key="item.id"
+            class="category-chip"
+            :class="{ 'category-chip--active': categoryId === item.id }"
+            @click="selectCategory(item)"
+          >
+            {{ item.name }}
+          </view>
         </view>
-        <view
-          v-for="item in categories"
-          :key="item.id"
-          class="category-chip"
-          :class="{ 'category-chip--active': categoryId === item.id }"
-          @click="selectCategory(item)"
-        >
-          {{ item.name }}
-        </view>
-      </view>
-    </scroll-view>
+      </scroll-view>
+    </view>
 
     <view class="summary-bar">
       <view class="summary-bar__main">{{ filterSummary }}</view>
       <view class="summary-bar__sub">{{ resultSummary }}</view>
     </view>
 
-    <view v-if="loading" class="state">加载中...</view>
+    <view v-if="loading" class="state">正在加载题目...</view>
     <view v-else-if="error" class="error-card">
       <view class="error-card__text">{{ error }}</view>
       <view class="error-card__actions">
         <button class="error-card__button" size="mini" @click="() => loadQuestions()">重试</button>
-        <button class="error-card__button" size="mini" @click="resetFilters">清空筛选</button>
+        <button
+          class="error-card__button error-card__button--ghost"
+          size="mini"
+          @click="resetFilters"
+        >
+          清空筛选
+        </button>
       </view>
     </view>
     <view v-else-if="questions.length === 0" class="empty-card">
+      <view class="empty-card__icon">🪄</view>
       <view class="empty-card__title">没有找到匹配题目</view>
       <view class="empty-card__desc">可以换个关键词，或者试试清空分类与难度筛选。</view>
       <button v-if="hasActiveFilters" class="empty-card__button" size="mini" @click="resetFilters">
@@ -306,30 +333,104 @@ onPullDownRefresh(async () => {
   padding: 24rpx;
 }
 
-.toolbar {
+.list-hero {
   display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  padding: 30rpx;
+  border-radius: 28rpx;
+  background: $brand-gradient-soft;
+  border: 1px solid rgba(124, 77, 255, 0.08);
+
+  &__eyebrow {
+    color: $brand-color;
+    font-size: 22rpx;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  &__title {
+    color: $text-color;
+    font-size: 36rpx;
+    font-weight: 700;
+  }
+
+  &__desc {
+    color: $sub-text-color;
+    line-height: 1.72;
+    font-size: 25rpx;
+  }
+}
+
+.toolbar-card,
+.filter-panel,
+.summary-bar,
+.error-card,
+.empty-card,
+.load-more-card {
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 26rpx;
+  background: $card-background;
+  box-shadow: $card-shadow;
+}
+
+.toolbar-card {
+  display: flex;
+  flex-direction: column;
   gap: 16rpx;
+  padding: 24rpx;
 
   &__input {
-    flex: 1;
-    padding: 20rpx 24rpx;
-    border-radius: 16rpx;
-    background: #fff;
+    width: 100%;
+    padding: 22rpx 24rpx;
+    border-radius: 20rpx;
+    background: #f7f7fc;
+    font-size: 26rpx;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12rpx;
   }
 
   &__button {
-    flex-shrink: 0;
+    padding: 0 28rpx;
+    border-radius: 999rpx;
+    font-size: 24rpx;
 
     &--primary {
-      background: #1677ff;
+      background: $brand-gradient;
       color: #fff;
     }
 
     &--ghost {
       background: #fff;
-      color: #1677ff;
-      border: 1px solid #b7d4ff;
+      color: $brand-color;
+      border: 1px solid rgba(124, 77, 255, 0.16);
     }
+  }
+}
+
+.filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+  padding: 24rpx;
+
+  &--soft {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(245, 247, 255, 0.98) 100%
+    );
+  }
+
+  &__label {
+    color: $text-color;
+    font-size: 24rpx;
+    font-weight: 600;
   }
 }
 
@@ -348,12 +449,14 @@ onPullDownRefresh(async () => {
 .category-chip {
   padding: 12rpx 24rpx;
   border-radius: 999rpx;
-  background: #fff;
-  color: #4e5969;
+  background: #f5f6fb;
+  color: $sub-text-color;
   font-size: 24rpx;
+  font-weight: 600;
 
   &--active {
-    background: #1677ff;
+    background: $brand-gradient;
+    box-shadow: 0 14rpx 30rpx rgba(124, 77, 255, 0.18);
     color: #fff;
   }
 }
@@ -362,25 +465,31 @@ onPullDownRefresh(async () => {
   display: flex;
   flex-direction: column;
   gap: 8rpx;
-  color: #86909c;
-  font-size: 24rpx;
+  padding: 22rpx 24rpx;
 
   &__main {
-    color: #4e5969;
-    line-height: 1.6;
+    color: $text-color;
+    line-height: 1.68;
+    font-size: 25rpx;
+    font-weight: 600;
+  }
+
+  &__sub {
+    color: $muted-text-color;
+    font-size: 23rpx;
   }
 }
 
 .question-list {
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+  gap: 18rpx;
 }
 
 .state {
-  padding: 48rpx 0;
+  padding: 54rpx 0;
   text-align: center;
-  color: #86909c;
+  color: $muted-text-color;
 }
 
 .error-card,
@@ -389,30 +498,33 @@ onPullDownRefresh(async () => {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
-  padding: 28rpx;
-  border-radius: 20rpx;
-  background: #fff;
+  padding: 30rpx;
 }
 
 .error-card {
-  background: #fff1f0;
+  background: $danger-background;
 
   &__text {
-    color: #cf1322;
-    line-height: 1.6;
+    color: $danger-color;
+    line-height: 1.68;
   }
 
   &__actions {
     display: flex;
-    gap: 16rpx;
+    gap: 12rpx;
+    flex-wrap: wrap;
   }
 
   &__button {
-    padding: 0 24rpx;
-    border: 1px solid #ffccc7;
+    padding: 0 28rpx;
     border-radius: 999rpx;
     background: #fff;
-    color: #cf1322;
+    color: $danger-color;
+    font-size: 24rpx;
+
+    &--ghost {
+      color: $brand-color;
+    }
   }
 }
 
@@ -420,21 +532,27 @@ onPullDownRefresh(async () => {
   align-items: center;
   text-align: center;
 
+  &__icon {
+    font-size: 68rpx;
+  }
+
   &__title {
-    font-size: 30rpx;
-    font-weight: 600;
+    color: $text-color;
+    font-size: 32rpx;
+    font-weight: 700;
   }
 
   &__desc {
-    color: #86909c;
-    line-height: 1.6;
+    color: $sub-text-color;
+    line-height: 1.68;
   }
 
   &__button {
-    padding: 0 24rpx;
+    padding: 0 30rpx;
     border-radius: 999rpx;
-    background: #1677ff;
+    background: $brand-gradient;
     color: #fff;
+    font-size: 24rpx;
   }
 }
 
@@ -442,19 +560,20 @@ onPullDownRefresh(async () => {
   align-items: center;
 
   &__text {
-    color: #86909c;
+    color: $muted-text-color;
   }
 
   &__button {
-    padding: 0 28rpx;
+    padding: 0 30rpx;
     border-radius: 999rpx;
     background: #fff;
-    color: #1677ff;
-    border: 1px solid #b7d4ff;
+    color: $brand-color;
+    border: 1px solid rgba(124, 77, 255, 0.16);
+    font-size: 24rpx;
 
     &--danger {
-      color: #cf1322;
-      border-color: #ffccc7;
+      color: $danger-color;
+      border-color: rgba(225, 29, 72, 0.18);
     }
   }
 }
