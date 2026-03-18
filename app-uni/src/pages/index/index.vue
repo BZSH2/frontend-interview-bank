@@ -48,26 +48,34 @@ onMounted(loadHome);
       </view>
     </view>
 
-    <view class="section-card">
+    <view class="section-card section-card--nav">
       <view class="section-card__header">
         <view>
           <view class="section-card__eyebrow">Categories</view>
-          <view class="section-card__title">分类</view>
+          <view class="section-card__title">分类导航</view>
         </view>
-        <navigator class="section-card__link" url="/pages/question-list/index">全部</navigator>
+        <navigator class="section-card__link" url="/pages/question-list/index">进入列表</navigator>
       </view>
 
       <view v-if="questionStore.loading" class="section-card__state">分类加载中...</view>
-      <view v-else class="section-card__chips">
-        <navigator
-          v-for="category in questionStore.categories"
-          :key="category.id"
-          :url="`/pages/question-list/index?categoryId=${category.id}&categoryName=${encodeURIComponent(category.name)}`"
-          class="chip"
-        >
-          {{ category.name }}
-        </navigator>
-      </view>
+      <scroll-view v-else class="category-nav-scroll" scroll-x>
+        <view class="category-nav-row">
+          <navigator
+            class="category-nav-item category-nav-item--active"
+            url="/pages/question-list/index"
+          >
+            全部
+          </navigator>
+          <navigator
+            v-for="category in questionStore.categories"
+            :key="category.id"
+            :url="`/pages/question-list/index?categoryId=${category.id}&categoryName=${encodeURIComponent(category.name)}`"
+            class="category-nav-item"
+          >
+            {{ category.name }}
+          </navigator>
+        </view>
+      </scroll-view>
     </view>
 
     <view class="section-card">
@@ -220,10 +228,8 @@ onMounted(loadHome);
     font-weight: 600;
   }
 
-  &__chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12rpx;
+  &--nav {
+    gap: 20rpx;
   }
 
   &__state {
@@ -232,14 +238,57 @@ onMounted(loadHome);
   }
 }
 
-.chip {
-  padding: 12rpx 20rpx;
-  border: 1px solid rgba(22, 28, 45, 0.06);
-  border-radius: 999rpx;
-  background: #faf9f7;
-  color: $brand-color;
-  font-size: 24rpx;
+.category-nav-scroll {
+  white-space: nowrap;
+}
+
+.category-nav-row {
+  position: relative;
+  display: inline-flex;
+  gap: 28rpx;
+  min-width: 100%;
+  padding-bottom: 6rpx;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: rgba(22, 28, 45, 0.08);
+  }
+}
+
+.category-nav-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 8rpx 0 18rpx;
+  color: $muted-text-color;
+  font-size: 26rpx;
   font-weight: 500;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 4rpx;
+    border-radius: 999rpx;
+    background: transparent;
+  }
+
+  &--active {
+    color: $brand-color;
+    font-weight: 700;
+
+    &::after {
+      background: $brand-color;
+    }
+  }
 }
 
 .question-list {

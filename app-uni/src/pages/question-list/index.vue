@@ -247,13 +247,16 @@ onPullDownRefresh(async () => {
       </scroll-view>
     </view>
 
-    <view class="filter-panel">
-      <view class="filter-panel__label">分类</view>
+    <view class="category-nav-card">
+      <view class="category-nav-card__head">
+        <view class="filter-panel__label">分类导航</view>
+        <view class="category-nav-card__current">{{ categoryName || '全部分类' }}</view>
+      </view>
       <scroll-view class="category-scroll" scroll-x>
         <view class="category-row">
           <view
-            class="category-chip"
-            :class="{ 'category-chip--active': !categoryId }"
+            class="category-tab"
+            :class="{ 'category-tab--active': !categoryId }"
             @click="selectCategory()"
           >
             全部分类
@@ -261,8 +264,8 @@ onPullDownRefresh(async () => {
           <view
             v-for="item in categories"
             :key="item.id"
-            class="category-chip"
-            :class="{ 'category-chip--active': categoryId === item.id }"
+            class="category-tab"
+            :class="{ 'category-tab--active': categoryId === item.id }"
             @click="selectCategory(item)"
           >
             {{ item.name }}
@@ -335,6 +338,7 @@ onPullDownRefresh(async () => {
 .list-hero,
 .toolbar-card,
 .filter-panel,
+.category-nav-card,
 .summary-bar,
 .error-card,
 .empty-card,
@@ -428,14 +432,12 @@ onPullDownRefresh(async () => {
   white-space: nowrap;
 }
 
-.filter-row,
-.category-row {
+.filter-row {
   display: inline-flex;
   gap: 12rpx;
 }
 
-.filter-chip,
-.category-chip {
+.filter-chip {
   padding: 12rpx 24rpx;
   border-radius: 999rpx;
   background: #f8f7f4;
@@ -446,6 +448,74 @@ onPullDownRefresh(async () => {
   &--active {
     background: $brand-gradient;
     color: #fff;
+  }
+}
+
+.category-nav-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  padding: 24rpx;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16rpx;
+  }
+
+  &__current {
+    color: $muted-text-color;
+    font-size: 22rpx;
+  }
+}
+
+.category-row {
+  position: relative;
+  display: inline-flex;
+  gap: 28rpx;
+  min-width: 100%;
+  padding-bottom: 6rpx;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: rgba(22, 28, 45, 0.08);
+  }
+}
+
+.category-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 8rpx 0 18rpx;
+  color: $muted-text-color;
+  font-size: 26rpx;
+  font-weight: 500;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 4rpx;
+    border-radius: 999rpx;
+    background: transparent;
+  }
+
+  &--active {
+    color: $brand-color;
+    font-weight: 700;
+
+    &::after {
+      background: $brand-color;
+    }
   }
 }
 
