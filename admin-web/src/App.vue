@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MarkdownIt from 'markdown-it';
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 
 import {
@@ -29,6 +30,12 @@ import type {
   RequestStatus,
   SyncStatus,
 } from '@/types/admin';
+
+const markdown = new MarkdownIt({
+  html: false,
+  breaks: true,
+  linkify: true,
+});
 
 const overview = ref<AdminOverview | null>(null);
 const categories = ref<CategoryItem[]>([]);
@@ -141,6 +148,10 @@ const questionEditorTitle = computed(() =>
 const categoryEditorTitle = computed(() =>
   categoryEditorMode.value === 'create' ? '新建分类' : `编辑分类 #${selectedCategoryId.value}`,
 );
+const explanationPreviewHtml = computed(() => {
+  const content = questionForm.explanationContent.trim();
+  return content ? markdown.render(content) : '';
+});
 const questionPageCount = computed(() =>
   Math.max(1, Math.ceil(questionPager.total / questionPager.pageSize)),
 );
@@ -999,6 +1010,19 @@ onBeforeUnmount(() => {
                 讲解。保存后会自动刷新题目列表、概览和讲解申请列表。</span
               >
             </label>
+
+            <div class="form-grid__full preview-card">
+              <div class="preview-card__header">
+                <span>Markdown 预览</span>
+                <span class="field-tip">与用户端讲解区保持同一套 Markdown 解析规则。</span>
+              </div>
+              <div
+                v-if="explanationPreviewHtml"
+                class="preview-card__body markdown-preview"
+                v-html="explanationPreviewHtml"
+              ></div>
+              <div v-else class="preview-card__empty">输入 Markdown 后，这里会显示预览效果。</div>
+            </div>
           </div>
 
           <div class="card__footer">
@@ -1689,6 +1713,104 @@ onBeforeUnmount(() => {
 
 .form-grid__full {
   grid-column: 1 / -1;
+}
+
+.preview-card {
+  border: 1px solid #eaecf0;
+  border-radius: 16px;
+  background: #fafcff;
+}
+
+.preview-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eaecf0;
+}
+
+.preview-card__header > span:first-child {
+  color: #101828;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.preview-card__body,
+.preview-card__empty {
+  padding: 16px;
+}
+
+.preview-card__empty {
+  color: #667085;
+  font-size: 13px;
+}
+
+.markdown-preview {
+  color: #1f2329;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.markdown-preview :deep(h1),
+.markdown-preview :deep(h2),
+.markdown-preview :deep(h3),
+.markdown-preview :deep(h4),
+.markdown-preview :deep(p),
+.markdown-preview :deep(ul),
+.markdown-preview :deep(ol),
+.markdown-preview :deep(pre),
+.markdown-preview :deep(blockquote) {
+  margin: 0 0 12px;
+}
+
+.markdown-preview :deep(ul),
+.markdown-preview :deep(ol) {
+  padding-left: 20px;
+}
+
+.markdown-preview :deep(li + li) {
+  margin-top: 6px;
+}
+
+.markdown-preview :deep(pre) {
+  overflow-x: auto;
+  padding: 14px;
+  border-radius: 12px;
+  background: #0f172a;
+  color: #e2e8f0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.markdown-preview :deep(code) {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.06);
+  color: #c7254e;
+  font-size: 13px;
+}
+
+.markdown-preview :deep(pre code) {
+  padding: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.markdown-preview :deep(blockquote) {
+  padding-left: 12px;
+  border-left: 4px solid #91caff;
+  color: #475467;
+}
+
+.markdown-preview :deep(a) {
+  color: #1677ff;
+  word-break: break-all;
+}
+
+.markdown-preview :deep(img) {
+  max-width: 100%;
+  border-radius: 12px;
 }
 
 @media (max-width: 1200px) {

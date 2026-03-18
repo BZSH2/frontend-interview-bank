@@ -52,10 +52,16 @@ importers:
 
   admin-web:
     dependencies:
+      markdown-it:
+        specifier: ^14.1.1
+        version: 14.1.1
       vue:
         specifier: 3.4.21
         version: 3.4.21(typescript@5.8.2)
     devDependencies:
+      '@types/markdown-it':
+        specifier: ^14.1.2
+        version: 14.1.2
       '@types/node':
         specifier: 22.13.10
         version: 22.13.10
