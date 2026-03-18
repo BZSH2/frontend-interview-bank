@@ -64,10 +64,16 @@ async function renderPreview() {
     await Vditor.preview(previewRef.value, markdown, {
       mode: 'light',
       anchor: 0,
+      theme: {
+        current: 'wechat',
+      },
       markdown: {
         toc: false,
         sanitize: true,
         gfmAutoLink: true,
+        autoSpace: true,
+        fixTermTypo: true,
+        listStyle: true,
       },
       hljs: {
         style: 'github',
@@ -142,9 +148,18 @@ onBeforeUnmount(() => {
     padding: 0;
     margin: 0;
     color: #1f2329;
-    font-size: 30rpx;
-    line-height: 1.9;
+    font-size: 29rpx;
+    line-height: 1.88;
+    letter-spacing: 0.01em;
     word-break: break-word;
+  }
+
+  :deep(.vditor-reset > :first-child) {
+    margin-top: 0 !important;
+  }
+
+  :deep(.vditor-reset > :last-child) {
+    margin-bottom: 0 !important;
   }
 
   :deep(.vditor-reset h1) {
@@ -152,7 +167,7 @@ onBeforeUnmount(() => {
   }
 
   :deep(.vditor-reset h2) {
-    margin: 28rpx 0 18rpx;
+    margin: 24rpx 0 16rpx;
     color: #101828;
     font-size: 34rpx;
     line-height: 1.5;
@@ -160,7 +175,7 @@ onBeforeUnmount(() => {
   }
 
   :deep(.vditor-reset h3) {
-    margin: 22rpx 0 14rpx;
+    margin: 20rpx 0 12rpx;
     color: #1d2939;
     font-size: 31rpx;
     line-height: 1.55;
@@ -168,7 +183,7 @@ onBeforeUnmount(() => {
   }
 
   :deep(.vditor-reset h4) {
-    margin: 18rpx 0 12rpx;
+    margin: 16rpx 0 10rpx;
     color: #344054;
     font-size: 28rpx;
     line-height: 1.55;
@@ -176,33 +191,45 @@ onBeforeUnmount(() => {
   }
 
   :deep(.vditor-reset p) {
-    margin: 0 0 18rpx;
+    margin: 0 0 16rpx;
     color: #1f2329;
-    line-height: 1.9;
+    line-height: 1.88;
   }
 
   :deep(.vditor-reset ul),
   :deep(.vditor-reset ol) {
-    margin: 0 0 18rpx;
-    padding-left: 1.5em;
+    margin: 0 0 16rpx;
+    padding-left: 1.45em;
   }
 
   :deep(.vditor-reset li) {
     margin-bottom: 10rpx;
-    line-height: 1.85;
+    line-height: 1.82;
+  }
+
+  :deep(.vditor-reset li > p) {
+    margin: 0 0 8rpx;
+  }
+
+  :deep(.vditor-reset li:last-child > p:last-child) {
+    margin-bottom: 0;
   }
 
   :deep(.vditor-reset blockquote) {
-    margin: 0 0 20rpx;
+    margin: 0 0 18rpx;
     padding: 18rpx 20rpx 18rpx 22rpx;
     border-left: 6rpx solid #91caff;
     border-radius: 0 16rpx 16rpx 0;
-    background: #f3f8ff;
+    background: linear-gradient(180deg, #f5f9ff 0%, #eff6ff 100%);
     color: #475467;
   }
 
+  :deep(.vditor-reset blockquote > :last-child) {
+    margin-bottom: 0;
+  }
+
   :deep(.vditor-reset hr) {
-    margin: 26rpx 0;
+    margin: 22rpx 0;
     border: 0;
     border-top: 1px solid #dbe5f0;
   }
@@ -227,13 +254,49 @@ onBeforeUnmount(() => {
     font-size: 0.92em;
   }
 
+  :deep(.vditor-copy) {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10rpx;
+  }
+
+  :deep(.vditor-copy textarea) {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  :deep(.vditor-copy span) {
+    display: inline-flex;
+    align-items: center;
+    gap: 6rpx;
+    padding: 8rpx 14rpx;
+    border-radius: 999rpx;
+    background: rgba(15, 23, 42, 0.06);
+    color: #475467;
+    font-size: 22rpx;
+  }
+
+  :deep(.vditor-copy svg) {
+    width: 24rpx;
+    height: 24rpx;
+  }
+
   :deep(.vditor-reset pre) {
-    margin: 0 0 20rpx;
+    margin: 0 0 18rpx;
     padding: 20rpx 22rpx;
     border-radius: 18rpx;
-    background: #f8fafc;
+    background: #0f172a;
+    color: #e2e8f0;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  :deep(.vditor-reset .hljs) {
+    background: transparent;
+    color: inherit;
   }
 
   :deep(.vditor-reset pre code) {
@@ -245,11 +308,12 @@ onBeforeUnmount(() => {
   :deep(.vditor-reset table) {
     display: block;
     max-width: 100%;
-    margin: 0 0 20rpx;
+    margin: 0 0 18rpx;
     overflow-x: auto;
     border-spacing: 0;
     border-collapse: collapse;
     -webkit-overflow-scrolling: touch;
+    border-radius: 14rpx;
   }
 
   :deep(.vditor-reset th),
