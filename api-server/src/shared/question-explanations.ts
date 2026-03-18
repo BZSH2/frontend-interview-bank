@@ -1,14 +1,6 @@
 import { access, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 
-import MarkdownIt from 'markdown-it';
-
-const md = new MarkdownIt({
-  html: false,
-  breaks: true,
-  linkify: true,
-});
-
 const explanationRoots = Array.from(
   new Set([
     path.resolve(__dirname, '..', '..', '..', 'content', 'question-explanations'),
@@ -30,7 +22,6 @@ export interface QuestionExplanationLookupInput {
 export interface EffectiveQuestionExplanation {
   hasExplanation: boolean;
   content: string | null;
-  renderedHtml: string | null;
   updatedAt: Date | string | null;
   source: 'file' | 'database' | null;
   filePath: string | null;
@@ -94,14 +85,6 @@ async function findExplanationFile(
   return null;
 }
 
-function renderMarkdown(content: string | null) {
-  if (!content) {
-    return null;
-  }
-
-  return md.render(content);
-}
-
 export async function resolveEffectiveExplanation(
   input: QuestionExplanationLookupInput,
 ): Promise<EffectiveQuestionExplanation> {
@@ -114,7 +97,6 @@ export async function resolveEffectiveExplanation(
       return {
         hasExplanation: true,
         content,
-        renderedHtml: renderMarkdown(content),
         updatedAt: fileStat.mtime,
         source: 'file',
         filePath: fileHit.displayPath,
@@ -127,7 +109,6 @@ export async function resolveEffectiveExplanation(
     return {
       hasExplanation: true,
       content: dbContent,
-      renderedHtml: renderMarkdown(dbContent),
       updatedAt: input.dbUpdatedAt || null,
       source: dbContent ? 'database' : null,
       filePath: null,
@@ -137,7 +118,6 @@ export async function resolveEffectiveExplanation(
   return {
     hasExplanation: false,
     content: null,
-    renderedHtml: null,
     updatedAt: null,
     source: null,
     filePath: null,

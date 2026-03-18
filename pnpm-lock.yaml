@@ -104,9 +104,6 @@ importers:
       class-validator:
         specifier: ^0.14.1
         version: 0.14.4
-      markdown-it:
-        specifier: ^14.1.1
-        version: 14.1.1
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -126,9 +123,6 @@ importers:
       '@types/express':
         specifier: ^5.0.0
         version: 5.0.6
-      '@types/markdown-it':
-        specifier: ^14.1.2
-        version: 14.1.2
       '@types/node':
         specifier: ^22.13.10
         version: 22.19.15
@@ -159,6 +153,12 @@ importers:
       '@dcloudio/uni-mp-weixin':
         specifier: 3.0.0-alpha-5000320260310001
         version: 3.0.0-alpha-5000320260310001(postcss@8.5.8)(rollup@4.59.0)(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2))(vue@3.4.21(typescript@5.8.2))
+      markdown-it:
+        specifier: ^14.1.1
+        version: 14.1.1
+      mp-html:
+        specifier: ^2.5.2
+        version: 2.5.2
       pinia:
         specifier: 2.1.7
         version: 2.1.7(typescript@5.8.2)(vue@3.4.21(typescript@5.8.2))
@@ -172,6 +172,9 @@ importers:
       '@dcloudio/vite-plugin-uni':
         specifier: 3.0.0-alpha-5000320260310001
         version: 3.0.0-alpha-5000320260310001(postcss@8.5.8)(rollup@4.59.0)(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2))(vite@5.2.8(@types/node@22.13.10)(sass@1.85.1)(terser@5.46.0))(vue@3.4.21(typescript@5.8.2))
+      '@types/markdown-it':
+        specifier: ^14.1.2
+        version: 14.1.2
       '@types/node':
         specifier: 22.13.10
         version: 22.13.10
@@ -6079,6 +6082,12 @@ packages:
     resolution:
       {
         integrity: sha512-23g5BFj4zdQL/b6tor7Ji+QY4pEfNH784BMslY9Qb0UnJWRAt+lQGLYmRaM0KDBwIG23ffEBELhZDP2rhi9f/Q==,
+      }
+
+  mp-html@2.5.2:
+    resolution:
+      {
+        integrity: sha512-45e8c32Qgux4YU4iC3qCSFsOh3y+RwPwZ+iz/vvLkDgSGWk+1zsL4WUzWWQc9w3AsAfkaD/QR0oIufIDngBmXA==,
       }
 
   ms@2.0.0:
@@ -12187,6 +12196,8 @@ snapshots:
       ufo: 1.6.3
 
   module-alias@2.2.3: {}
+
+  mp-html@2.5.2: {}
 
   ms@2.0.0: {}
 

@@ -124,7 +124,6 @@ export class QuestionsService {
       ...question,
       hasExplanation: explanation.hasExplanation,
       explanationContent: explanation.content,
-      explanationRenderedHtml: explanation.renderedHtml,
       explanationUpdatedAt: explanation.updatedAt,
       explanationSource: explanation.source,
       explanationFilePath: explanation.filePath,

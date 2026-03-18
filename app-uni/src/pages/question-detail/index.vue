@@ -2,6 +2,7 @@
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app';
 import { computed, ref } from 'vue';
 
+import MarkdownViewer from '@/components/markdown-viewer.vue';
 import { getQuestionDetail, getQuestionRequestStatus } from '@/services/question';
 import type { QuestionDetail, QuestionRequestStatus } from '@/types/question';
 import { getDifficultyLabel } from '@/utils/question';
@@ -170,12 +171,7 @@ onPullDownRefresh(async () => {
             explanationFilePathText
           }}</text>
         </view>
-        <rich-text
-          v-if="question.explanationRenderedHtml"
-          class="card__markdown"
-          :nodes="question.explanationRenderedHtml"
-        />
-        <view v-else class="card__content">{{ question.explanationContent }}</view>
+        <MarkdownViewer class="card__markdown" :source="question.explanationContent" />
       </view>
 
       <view v-if="question.hasExplanation || requestStatus || requestStatusError" class="card">
@@ -303,71 +299,7 @@ onPullDownRefresh(async () => {
   }
 
   &__markdown {
-    color: #1f2329;
-    font-size: 28rpx;
-    line-height: 1.8;
-
-    :deep(p),
-    :deep(ul),
-    :deep(ol),
-    :deep(pre),
-    :deep(blockquote),
-    :deep(h1),
-    :deep(h2),
-    :deep(h3),
-    :deep(h4) {
-      margin: 0 0 16rpx;
-    }
-
-    :deep(ul),
-    :deep(ol) {
-      padding-left: 36rpx;
-    }
-
-    :deep(li) {
-      margin-bottom: 8rpx;
-    }
-
-    :deep(pre) {
-      overflow-x: auto;
-      padding: 20rpx;
-      border-radius: 16rpx;
-      background: #0f172a;
-      color: #e2e8f0;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    :deep(code) {
-      padding: 2rpx 8rpx;
-      border-radius: 8rpx;
-      background: rgba(15, 23, 42, 0.06);
-      color: #c7254e;
-      font-size: 26rpx;
-    }
-
-    :deep(pre code) {
-      padding: 0;
-      background: transparent;
-      color: inherit;
-      font-size: 24rpx;
-    }
-
-    :deep(blockquote) {
-      padding-left: 20rpx;
-      border-left: 6rpx solid #91caff;
-      color: #4e5969;
-    }
-
-    :deep(a) {
-      color: #1677ff;
-      word-break: break-all;
-    }
-
-    :deep(img) {
-      max-width: 100%;
-      border-radius: 16rpx;
-    }
+    width: 100%;
   }
 
   &__actions {
