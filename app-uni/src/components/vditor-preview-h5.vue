@@ -123,7 +123,7 @@ onBeforeUnmount(() => {
 <template>
   <view class="vditor-preview-h5">
     <view v-if="renderMode === 'loading'" class="vditor-preview-h5__loading"
-      >讲解增强预览加载中...</view
+      >讲解预览加载中...</view
     >
     <div v-show="renderMode === 'vditor'" ref="previewRef" class="vditor-preview-h5__content" />
     <MarkdownViewer v-if="renderMode === 'fallback'" :source="normalizedSource" />
@@ -137,7 +137,7 @@ onBeforeUnmount(() => {
 
 .vditor-preview-h5__loading {
   padding: 20rpx 0;
-  color: #667085;
+  color: #98a2b3;
   font-size: 24rpx;
 }
 
@@ -147,7 +147,7 @@ onBeforeUnmount(() => {
   :deep(.vditor-reset) {
     padding: 0;
     margin: 0;
-    color: #1f2329;
+    color: #121826;
     font-size: 29rpx;
     line-height: 1.88;
     letter-spacing: 0.01em;
@@ -168,7 +168,7 @@ onBeforeUnmount(() => {
 
   :deep(.vditor-reset h2) {
     margin: 24rpx 0 16rpx;
-    color: #101828;
+    color: #121826;
     font-size: 34rpx;
     line-height: 1.5;
     font-weight: 700;
@@ -192,7 +192,7 @@ onBeforeUnmount(() => {
 
   :deep(.vditor-reset p) {
     margin: 0 0 16rpx;
-    color: #1f2329;
+    color: #121826;
     line-height: 1.88;
   }
 
@@ -218,10 +218,10 @@ onBeforeUnmount(() => {
   :deep(.vditor-reset blockquote) {
     margin: 0 0 18rpx;
     padding: 18rpx 20rpx 18rpx 22rpx;
-    border-left: 6rpx solid #91caff;
+    border-left: 4rpx solid #d8d4cc;
     border-radius: 0 16rpx 16rpx 0;
-    background: linear-gradient(180deg, #f5f9ff 0%, #eff6ff 100%);
-    color: #475467;
+    background: #faf9f7;
+    color: #667085;
   }
 
   :deep(.vditor-reset blockquote > :last-child) {
@@ -231,25 +231,25 @@ onBeforeUnmount(() => {
   :deep(.vditor-reset hr) {
     margin: 22rpx 0;
     border: 0;
-    border-top: 1px solid #dbe5f0;
+    border-top: 1px solid #ebe7df;
   }
 
   :deep(.vditor-reset a) {
-    color: #1677ff;
+    color: #3f4a66;
     text-decoration: none;
     word-break: break-all;
   }
 
   :deep(.vditor-reset strong) {
-    color: #101828;
+    color: #121826;
     font-weight: 700;
   }
 
   :deep(.vditor-reset code:not(.hljs)) {
     padding: 4rpx 10rpx;
     border-radius: 10rpx;
-    background: #eef4ff;
-    color: #1d4ed8;
+    background: #f4f3f0;
+    color: #3f4a66;
     font-family: SFMono-Regular, Consolas, Monaco, monospace;
     font-size: 0.92em;
   }
@@ -274,8 +274,8 @@ onBeforeUnmount(() => {
     gap: 6rpx;
     padding: 8rpx 14rpx;
     border-radius: 999rpx;
-    background: rgba(15, 23, 42, 0.06);
-    color: #475467;
+    background: #f4f3f0;
+    color: #667085;
     font-size: 22rpx;
   }
 
@@ -288,8 +288,8 @@ onBeforeUnmount(() => {
     margin: 0 0 18rpx;
     padding: 20rpx 22rpx;
     border-radius: 18rpx;
-    background: #0f172a;
-    color: #e2e8f0;
+    background: #161c2d;
+    color: #edf0f5;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -319,7 +319,7 @@ onBeforeUnmount(() => {
   :deep(.vditor-reset th),
   :deep(.vditor-reset td) {
     padding: 14rpx 16rpx;
-    border: 1px solid #d9e1ec;
+    border: 1px solid #e7e5df;
     font-size: 24rpx;
     line-height: 1.7;
     vertical-align: top;
@@ -327,7 +327,7 @@ onBeforeUnmount(() => {
   }
 
   :deep(.vditor-reset th) {
-    background: #f7faff;
+    background: #faf9f7;
     color: #344054;
     font-weight: 600;
   }

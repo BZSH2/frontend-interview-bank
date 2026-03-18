@@ -69,8 +69,9 @@ onLoad((options) => {
 <template>
   <view class="page">
     <view class="result-card">
-      <view class="result-card__halo"></view>
-      <view class="result-card__icon">🎉</view>
+      <view class="result-card__icon">
+        <text>✓</text>
+      </view>
       <view class="result-card__title">提交成功</view>
       <view class="result-card__desc">{{ resultText }}</view>
       <view class="result-card__status" :class="`result-card__status--${syncStatus}`">
@@ -106,60 +107,43 @@ onLoad((options) => {
 }
 
 .result-card {
-  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 18rpx;
   width: 100%;
   padding: 54rpx 34rpx;
+  border: 1px solid rgba(15, 23, 42, 0.04);
   border-radius: 30rpx;
   background: $card-background;
   box-shadow: $card-shadow-strong;
   text-align: center;
-  overflow: hidden;
-
-  &__halo {
-    position: absolute;
-    top: -90rpx;
-    right: -60rpx;
-    width: 260rpx;
-    height: 260rpx;
-    border-radius: 50%;
-    background: rgba(124, 77, 255, 0.12);
-  }
 
   &__icon {
-    position: relative;
-    z-index: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 132rpx;
-    height: 132rpx;
+    width: 120rpx;
+    height: 120rpx;
     border-radius: 50%;
-    background: $brand-gradient-soft;
-    font-size: 72rpx;
+    background: #f6f5f2;
+    color: $brand-color;
+    font-size: 56rpx;
+    font-weight: 600;
   }
 
   &__title {
-    position: relative;
-    z-index: 1;
     color: $text-color;
     font-size: 38rpx;
     font-weight: 700;
   }
 
   &__desc {
-    position: relative;
-    z-index: 1;
     line-height: 1.72;
     color: $sub-text-color;
   }
 
   &__status {
-    position: relative;
-    z-index: 1;
     padding: 10rpx 20rpx;
     border-radius: 999rpx;
     font-size: 24rpx;
@@ -177,15 +161,11 @@ onLoad((options) => {
   }
 
   &__sub {
-    position: relative;
-    z-index: 1;
     color: $muted-text-color;
     font-size: 24rpx;
   }
 
   &__actions {
-    position: relative;
-    z-index: 1;
     display: flex;
     flex-direction: column;
     gap: 16rpx;
@@ -208,7 +188,7 @@ onLoad((options) => {
     &--secondary {
       background: #fff;
       color: $brand-color;
-      border: 1px solid rgba(124, 77, 255, 0.16);
+      border: 1px solid rgba(22, 28, 45, 0.08);
     }
   }
 }

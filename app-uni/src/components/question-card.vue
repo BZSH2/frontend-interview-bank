@@ -38,7 +38,7 @@ function getDifficultyClass() {
     }}</view>
 
     <view v-if="item.tags?.length" class="question-card__tags">
-      <text v-for="tag in item.tags" :key="tag" class="question-card__tag"># {{ tag }}</text>
+      <text v-for="tag in item.tags" :key="tag" class="question-card__tag">{{ tag }}</text>
     </view>
 
     <view class="question-card__footer">
@@ -48,36 +48,24 @@ function getDifficultyClass() {
         </text>
         <text class="question-card__id">题目 #{{ item.id }}</text>
       </view>
-      <text class="question-card__arrow">查看详情 →</text>
+      <text class="question-card__arrow">查看</text>
     </view>
   </navigator>
 </template>
 
 <style scoped lang="scss">
 .question-card {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: 14rpx;
-  padding: 30rpx 28rpx;
-  border: 1px solid rgba(255, 255, 255, 0.75);
+  padding: 28rpx;
+  border: 1px solid rgba(15, 23, 42, 0.04);
   border-radius: 28rpx;
   background: $card-background;
   box-shadow: $card-shadow;
-  overflow: hidden;
 
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 8rpx;
-    background: $brand-gradient;
-    opacity: 0.92;
-  }
-
-  &__top {
+  &__top,
+  &__footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -117,12 +105,12 @@ function getDifficultyClass() {
     color: $text-color;
     font-size: 32rpx;
     font-weight: 700;
-    line-height: 1.42;
+    line-height: 1.44;
   }
 
   &__summary {
     color: $sub-text-color;
-    line-height: 1.72;
+    line-height: 1.7;
     font-size: 25rpx;
   }
 
@@ -133,19 +121,11 @@ function getDifficultyClass() {
   }
 
   &__tag {
-    padding: 8rpx 16rpx;
+    padding: 8rpx 14rpx;
     border-radius: 999rpx;
-    background: #f4f5fb;
-    color: #7a8091;
+    background: #f6f5f2;
+    color: $brand-secondary-color;
     font-size: 22rpx;
-  }
-
-  &__footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16rpx;
-    margin-top: 4rpx;
   }
 
   &__meta {

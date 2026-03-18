@@ -196,10 +196,10 @@ onPullDownRefresh(async () => {
 <template>
   <view class="page">
     <view class="list-hero">
-      <view class="list-hero__eyebrow">Smart Practice</view>
-      <view class="list-hero__title">按你的节奏刷题</view>
+      <view class="list-hero__eyebrow">Question Library</view>
+      <view class="list-hero__title">题库列表</view>
       <view class="list-hero__desc"
-        >用关键词、难度和分类快速缩小范围，把练习过程做得更轻、更聚焦。</view
+        >用关键词、难度和分类快速筛选，把注意力集中在真正需要练的题上。</view
       >
     </view>
 
@@ -231,7 +231,7 @@ onPullDownRefresh(async () => {
     </view>
 
     <view class="filter-panel">
-      <view class="filter-panel__label">难度筛选</view>
+      <view class="filter-panel__label">难度</view>
       <scroll-view class="filter-scroll" scroll-x>
         <view class="filter-row">
           <view
@@ -247,8 +247,8 @@ onPullDownRefresh(async () => {
       </scroll-view>
     </view>
 
-    <view class="filter-panel filter-panel--soft">
-      <view class="filter-panel__label">分类筛选</view>
+    <view class="filter-panel">
+      <view class="filter-panel__label">分类</view>
       <scroll-view class="category-scroll" scroll-x>
         <view class="category-row">
           <view
@@ -291,7 +291,6 @@ onPullDownRefresh(async () => {
       </view>
     </view>
     <view v-else-if="questions.length === 0" class="empty-card">
-      <view class="empty-card__icon">🪄</view>
       <view class="empty-card__title">没有找到匹配题目</view>
       <view class="empty-card__desc">可以换个关键词，或者试试清空分类与难度筛选。</view>
       <button v-if="hasActiveFilters" class="empty-card__button" size="mini" @click="resetFilters">
@@ -333,20 +332,30 @@ onPullDownRefresh(async () => {
   padding: 24rpx;
 }
 
+.list-hero,
+.toolbar-card,
+.filter-panel,
+.summary-bar,
+.error-card,
+.empty-card,
+.load-more-card {
+  border: 1px solid rgba(15, 23, 42, 0.04);
+  border-radius: 28rpx;
+  background: $card-background;
+  box-shadow: $card-shadow;
+}
+
 .list-hero {
   display: flex;
   flex-direction: column;
   gap: 10rpx;
   padding: 30rpx;
-  border-radius: 28rpx;
-  background: $brand-gradient-soft;
-  border: 1px solid rgba(124, 77, 255, 0.08);
 
   &__eyebrow {
-    color: $brand-color;
+    color: $brand-secondary-color;
     font-size: 22rpx;
-    font-weight: 700;
-    letter-spacing: 0.06em;
+    font-weight: 600;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
 
@@ -363,18 +372,6 @@ onPullDownRefresh(async () => {
   }
 }
 
-.toolbar-card,
-.filter-panel,
-.summary-bar,
-.error-card,
-.empty-card,
-.load-more-card {
-  border: 1px solid rgba(255, 255, 255, 0.75);
-  border-radius: 26rpx;
-  background: $card-background;
-  box-shadow: $card-shadow;
-}
-
 .toolbar-card {
   display: flex;
   flex-direction: column;
@@ -385,7 +382,7 @@ onPullDownRefresh(async () => {
     width: 100%;
     padding: 22rpx 24rpx;
     border-radius: 20rpx;
-    background: #f7f7fc;
+    background: #f8f7f4;
     font-size: 26rpx;
   }
 
@@ -408,7 +405,7 @@ onPullDownRefresh(async () => {
     &--ghost {
       background: #fff;
       color: $brand-color;
-      border: 1px solid rgba(124, 77, 255, 0.16);
+      border: 1px solid rgba(22, 28, 45, 0.08);
     }
   }
 }
@@ -418,14 +415,6 @@ onPullDownRefresh(async () => {
   flex-direction: column;
   gap: 14rpx;
   padding: 24rpx;
-
-  &--soft {
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.98) 0%,
-      rgba(245, 247, 255, 0.98) 100%
-    );
-  }
 
   &__label {
     color: $text-color;
@@ -449,14 +438,13 @@ onPullDownRefresh(async () => {
 .category-chip {
   padding: 12rpx 24rpx;
   border-radius: 999rpx;
-  background: #f5f6fb;
+  background: #f8f7f4;
   color: $sub-text-color;
   font-size: 24rpx;
-  font-weight: 600;
+  font-weight: 500;
 
   &--active {
     background: $brand-gradient;
-    box-shadow: 0 14rpx 30rpx rgba(124, 77, 255, 0.18);
     color: #fff;
   }
 }
@@ -532,10 +520,6 @@ onPullDownRefresh(async () => {
   align-items: center;
   text-align: center;
 
-  &__icon {
-    font-size: 68rpx;
-  }
-
   &__title {
     color: $text-color;
     font-size: 32rpx;
@@ -568,12 +552,12 @@ onPullDownRefresh(async () => {
     border-radius: 999rpx;
     background: #fff;
     color: $brand-color;
-    border: 1px solid rgba(124, 77, 255, 0.16);
+    border: 1px solid rgba(22, 28, 45, 0.08);
     font-size: 24rpx;
 
     &--danger {
       color: $danger-color;
-      border-color: rgba(225, 29, 72, 0.18);
+      border-color: rgba(194, 65, 93, 0.16);
     }
   }
 }

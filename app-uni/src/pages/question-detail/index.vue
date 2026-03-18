@@ -156,7 +156,7 @@ onPullDownRefresh(async () => {
         </view>
         <view class="hero-card__title">{{ question.title }}</view>
         <view v-if="question.tags?.length" class="hero-card__tags">
-          <text v-for="tag in question.tags" :key="tag" class="hero-card__tag"># {{ tag }}</text>
+          <text v-for="tag in question.tags" :key="tag" class="hero-card__tag">{{ tag }}</text>
         </view>
         <view class="hero-card__content">{{ question.content }}</view>
       </view>
@@ -173,7 +173,7 @@ onPullDownRefresh(async () => {
         <view class="section-card__header">
           <view>
             <view class="section-card__title">系统讲解</view>
-            <view class="section-card__sub">更适合面试复盘和追问准备的结构化讲解</view>
+            <view class="section-card__sub">结构化讲解，适合做面试复盘和追问准备</view>
           </view>
           <view v-if="explanationTimeText" class="section-card__time">{{
             explanationTimeText
@@ -245,15 +245,13 @@ onPullDownRefresh(async () => {
   flex-direction: column;
   gap: 16rpx;
   padding: 30rpx;
-  border: 1px solid rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(15, 23, 42, 0.04);
   border-radius: 28rpx;
   background: $card-background;
   box-shadow: $card-shadow;
 }
 
 .hero-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 245, 255, 0.98) 100%);
-
   &__badges {
     display: flex;
     flex-wrap: wrap;
@@ -294,7 +292,7 @@ onPullDownRefresh(async () => {
     color: $text-color;
     font-size: 38rpx;
     font-weight: 700;
-    line-height: 1.35;
+    line-height: 1.34;
   }
 
   &__tags {
@@ -304,10 +302,10 @@ onPullDownRefresh(async () => {
   }
 
   &__tag {
-    padding: 8rpx 16rpx;
+    padding: 8rpx 14rpx;
     border-radius: 999rpx;
-    background: #f4f5fb;
-    color: #7a8091;
+    background: #f6f5f2;
+    color: $brand-secondary-color;
     font-size: 22rpx;
   }
 
@@ -320,11 +318,10 @@ onPullDownRefresh(async () => {
 
 .section-card {
   &--highlight {
-    border-color: rgba(124, 77, 255, 0.12);
     background: linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.98) 0%,
-      rgba(245, 248, 255, 0.98) 100%
+      rgba(255, 255, 255, 0.96) 0%,
+      rgba(249, 248, 245, 0.96) 100%
     );
   }
 
@@ -344,10 +341,10 @@ onPullDownRefresh(async () => {
   &__label {
     padding: 8rpx 16rpx;
     border-radius: 999rpx;
-    background: $brand-gradient-soft;
-    color: $brand-color;
+    background: #f8f7f4;
+    color: $brand-secondary-color;
     font-size: 22rpx;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
   }
@@ -375,7 +372,7 @@ onPullDownRefresh(async () => {
   &__source-tag {
     padding: 8rpx 16rpx;
     border-radius: 999rpx;
-    background: $soft-blue-background;
+    background: #f8f7f4;
     color: $brand-secondary-color;
     font-size: 22rpx;
     font-weight: 600;
@@ -434,7 +431,7 @@ onPullDownRefresh(async () => {
   border-radius: 999rpx;
   background: #fff;
   color: $brand-color;
-  border: 1px solid rgba(124, 77, 255, 0.16);
+  border: 1px solid rgba(22, 28, 45, 0.08);
   font-size: 24rpx;
 
   &--primary {

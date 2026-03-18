@@ -7,8 +7,8 @@ import { useQuestionStore } from '@/stores/question';
 const questionStore = useQuestionStore();
 
 const stats = computed(() => [
-  { label: '主题分类', value: questionStore.categories.length || '--' },
-  { label: '首页题目', value: questionStore.questions.length || '--' },
+  { label: '分类', value: questionStore.categories.length || '--' },
+  { label: '题目', value: questionStore.questions.length || '--' },
 ]);
 
 async function loadHome() {
@@ -20,25 +20,29 @@ onMounted(loadHome);
 
 <template>
   <view class="page page-home">
-    <view class="page-home__hero">
-      <view class="page-home__badge">✨ Young UI · 面试准备更轻快</view>
-      <view class="page-home__title">前端面试题库</view>
-      <view class="page-home__desc">
-        覆盖高频基础题、场景题、系统讲解申请与持续内容沉淀，做成更适合刷题和复盘的移动端体验。
+    <view class="hero-card">
+      <view class="hero-card__eyebrow">Front-end Interview Bank</view>
+      <view class="hero-card__title">前端面试题库</view>
+      <view class="hero-card__desc">
+        覆盖基础题、场景题和系统讲解沉淀，用更清晰、克制的方式帮助你准备面试。
       </view>
 
-      <view class="page-home__stats">
+      <view class="hero-card__stats">
         <view v-for="item in stats" :key="item.label" class="hero-stat">
           <view class="hero-stat__value">{{ item.value }}</view>
           <view class="hero-stat__label">{{ item.label }}</view>
         </view>
       </view>
 
-      <view class="page-home__actions">
-        <navigator class="page-home__cta page-home__cta--primary" url="/pages/question-list/index"
-          >开始刷题</navigator
+      <view class="hero-card__actions">
+        <navigator
+          class="hero-card__button hero-card__button--primary"
+          url="/pages/question-list/index"
+          >进入题库</navigator
         >
-        <navigator class="page-home__cta page-home__cta--secondary" url="/pages/question-list/index"
+        <navigator
+          class="hero-card__button hero-card__button--secondary"
+          url="/pages/question-list/index"
           >按分类浏览</navigator
         >
       </view>
@@ -47,10 +51,10 @@ onMounted(loadHome);
     <view class="section-card">
       <view class="section-card__header">
         <view>
-          <view class="section-card__eyebrow">Browse</view>
-          <view class="section-card__title">热门分类</view>
+          <view class="section-card__eyebrow">Categories</view>
+          <view class="section-card__title">分类</view>
         </view>
-        <navigator class="section-card__link" url="/pages/question-list/index">看全部</navigator>
+        <navigator class="section-card__link" url="/pages/question-list/index">全部</navigator>
       </view>
 
       <view v-if="questionStore.loading" class="section-card__state">分类加载中...</view>
@@ -98,97 +102,83 @@ onMounted(loadHome);
   display: flex;
   flex-direction: column;
   gap: 24rpx;
+}
 
-  &__hero {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 18rpx;
-    padding: 36rpx 34rpx;
-    border-radius: 32rpx;
-    background: $brand-gradient;
-    box-shadow: $card-shadow-strong;
-    color: #fff;
-    overflow: hidden;
+.hero-card,
+.section-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  padding: 30rpx;
+  border: 1px solid rgba(15, 23, 42, 0.04);
+  border-radius: 28rpx;
+  background: $card-background;
+  box-shadow: $card-shadow;
+}
 
-    &::after {
-      content: '';
-      position: absolute;
-      top: -80rpx;
-      right: -40rpx;
-      width: 220rpx;
-      height: 220rpx;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.14);
-    }
-  }
-
-  &__badge {
-    align-self: flex-start;
-    padding: 10rpx 20rpx;
-    border-radius: 999rpx;
-    background: rgba(255, 255, 255, 0.18);
+.hero-card {
+  &__eyebrow {
+    color: $brand-secondary-color;
     font-size: 22rpx;
-    letter-spacing: 0.04em;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   &__title {
-    position: relative;
-    z-index: 1;
+    color: $text-color;
     font-size: 44rpx;
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.18;
   }
 
   &__desc {
-    position: relative;
-    z-index: 1;
-    color: rgba(255, 255, 255, 0.92);
-    line-height: 1.72;
+    max-width: 90%;
+    color: $sub-text-color;
     font-size: 26rpx;
+    line-height: 1.76;
   }
 
   &__stats {
-    position: relative;
-    z-index: 1;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14rpx;
   }
 
   &__actions {
-    position: relative;
-    z-index: 1;
     display: flex;
     flex-wrap: wrap;
     gap: 14rpx;
-    margin-top: 6rpx;
+    margin-top: 2rpx;
   }
 
-  &__cta {
+  &__button {
     padding: 16rpx 28rpx;
     border-radius: 999rpx;
-    font-weight: 600;
     font-size: 26rpx;
+    font-weight: 600;
 
     &--primary {
-      background: #fff;
-      color: $brand-color;
+      background: $brand-gradient;
+      color: #fff;
     }
 
     &--secondary {
-      background: rgba(255, 255, 255, 0.14);
-      color: #fff;
+      background: #fff;
+      color: $brand-color;
+      border: 1px solid rgba(22, 28, 45, 0.08);
     }
   }
 }
 
 .hero-stat {
   padding: 18rpx 20rpx;
-  border-radius: 22rpx;
-  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(22, 28, 45, 0.05);
+  border-radius: 20rpx;
+  background: #faf9f7;
 
   &__value {
+    color: $text-color;
     font-size: 34rpx;
     font-weight: 700;
     line-height: 1.1;
@@ -196,21 +186,12 @@ onMounted(loadHome);
 
   &__label {
     margin-top: 8rpx;
-    color: rgba(255, 255, 255, 0.84);
+    color: $muted-text-color;
     font-size: 22rpx;
   }
 }
 
 .section-card {
-  display: flex;
-  flex-direction: column;
-  gap: 18rpx;
-  padding: 28rpx;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 28rpx;
-  background: $card-background;
-  box-shadow: $card-shadow;
-
   &__header {
     display: flex;
     align-items: center;
@@ -219,9 +200,9 @@ onMounted(loadHome);
   }
 
   &__eyebrow {
-    color: $brand-color;
+    color: $brand-secondary-color;
     font-size: 22rpx;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
@@ -242,23 +223,23 @@ onMounted(loadHome);
   &__chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 14rpx;
+    gap: 12rpx;
   }
 
   &__state {
-    padding: 20rpx 0;
+    padding: 18rpx 0;
     color: $muted-text-color;
   }
 }
 
 .chip {
-  padding: 14rpx 22rpx;
-  border: 1px solid rgba(124, 77, 255, 0.14);
+  padding: 12rpx 20rpx;
+  border: 1px solid rgba(22, 28, 45, 0.06);
   border-radius: 999rpx;
-  background: $brand-gradient-soft;
+  background: #faf9f7;
   color: $brand-color;
   font-size: 24rpx;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .question-list {

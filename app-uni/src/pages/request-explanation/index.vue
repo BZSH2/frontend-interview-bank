@@ -103,10 +103,10 @@ onLoad((options) => {
 
     <template v-else>
       <view class="hero-card">
-        <view class="hero-card__badge">💡 Explain Request</view>
+        <view class="hero-card__eyebrow">Explain Request</view>
         <view class="hero-card__title">申请系统补充这道题的讲解</view>
         <view class="hero-card__desc"
-          >告诉系统你更想看哪种补充方向，比如真实追问、代码示例、性能分析或易错点总结。</view
+          >你可以补充想看的方向，比如真实追问、代码示例、性能分析或易错点总结。</view
         >
       </view>
 
@@ -115,8 +115,8 @@ onLoad((options) => {
         <view class="card__title">{{ title || `题目 #${questionId}` }}</view>
       </view>
 
-      <view class="card card--highlight">
-        <view class="card__label">你想补充的讲解方向</view>
+      <view class="card">
+        <view class="card__label">补充方向</view>
         <textarea
           v-model="note"
           class="card__textarea"
@@ -156,47 +156,36 @@ onLoad((options) => {
   flex-direction: column;
   gap: 16rpx;
   padding: 30rpx;
-  border: 1px solid rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(15, 23, 42, 0.04);
   border-radius: 28rpx;
   background: $card-background;
   box-shadow: $card-shadow;
 }
 
 .hero-card {
-  background: $brand-gradient;
-  color: #fff;
-
-  &__badge {
-    align-self: flex-start;
-    padding: 10rpx 20rpx;
-    border-radius: 999rpx;
-    background: rgba(255, 255, 255, 0.16);
+  &__eyebrow {
+    color: $brand-secondary-color;
     font-size: 22rpx;
     font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   &__title {
+    color: $text-color;
     font-size: 36rpx;
     font-weight: 700;
     line-height: 1.35;
   }
 
   &__desc {
-    color: rgba(255, 255, 255, 0.92);
+    color: $sub-text-color;
     line-height: 1.72;
     font-size: 25rpx;
   }
 }
 
 .card {
-  &--highlight {
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.98) 0%,
-      rgba(247, 244, 255, 0.98) 100%
-    );
-  }
-
   &__label {
     color: $muted-text-color;
     font-size: 24rpx;
@@ -215,7 +204,7 @@ onLoad((options) => {
     min-height: 240rpx;
     padding: 22rpx 24rpx;
     border-radius: 22rpx;
-    background: #f7f7fc;
+    background: #f8f7f4;
     line-height: 1.7;
   }
 
@@ -237,8 +226,8 @@ onLoad((options) => {
     flex-shrink: 0;
     padding: 8rpx 14rpx;
     border-radius: 999rpx;
-    background: $soft-purple-background;
-    color: $brand-color;
+    background: #f6f5f2;
+    color: $brand-secondary-color;
     font-size: 22rpx;
     font-weight: 600;
   }
@@ -262,7 +251,6 @@ onLoad((options) => {
   &--primary {
     background: $brand-gradient;
     color: #fff;
-    box-shadow: 0 18rpx 40rpx rgba(124, 77, 255, 0.22);
   }
 }
 </style>

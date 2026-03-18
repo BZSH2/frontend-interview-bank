@@ -7,10 +7,9 @@ export default {
 <style lang="scss">
 page {
   background:
-    radial-gradient(circle at top left, rgba(124, 77, 255, 0.16), transparent 32%),
-    radial-gradient(circle at top right, rgba(69, 196, 255, 0.14), transparent 28%),
-    linear-gradient(180deg, #f8f6ff 0%, #f5f4ff 44%, #f9fbff 100%);
-  color: #181c2a;
+    radial-gradient(circle at top left, rgba(22, 28, 45, 0.04), transparent 28%),
+    linear-gradient(180deg, #faf9f7 0%, #f7f5f1 48%, #f8f7f4 100%);
+  color: #121826;
   font-size: 28rpx;
 }
 
@@ -35,6 +34,6 @@ button::after {
 
 input,
 textarea {
-  color: #181c2a;
+  color: #121826;
 }
 </style>
