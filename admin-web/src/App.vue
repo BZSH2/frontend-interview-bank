@@ -994,7 +994,10 @@ onBeforeUnmount(() => {
                 class="textarea textarea--large"
                 placeholder="有内容时会自动标记为“已有讲解”，并将关联申请置为 DONE；清空后会移除讲解。"
               ></textarea>
-              <span class="field-tip">保存后会自动刷新题目列表、概览和讲解申请列表。</span>
+              <span class="field-tip"
+                >支持 Markdown；用户端会优先渲染 Markdown
+                讲解。保存后会自动刷新题目列表、概览和讲解申请列表。</span
+              >
             </label>
           </div>
 

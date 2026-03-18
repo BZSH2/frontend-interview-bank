@@ -27,11 +27,16 @@ export interface QuestionListResult {
   hasMore: boolean;
 }
 
+export type ExplanationSource = 'file' | 'database' | null;
+
 export interface QuestionDetail extends QuestionItem {
   content: string;
   answer?: string | null;
   explanationContent?: string | null;
+  explanationRenderedHtml?: string | null;
   explanationUpdatedAt?: string | null;
+  explanationSource?: ExplanationSource;
+  explanationFilePath?: string | null;
 }
 
 export interface QuestionRequestStatus {

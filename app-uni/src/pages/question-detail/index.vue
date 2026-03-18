@@ -49,6 +49,25 @@ const explanationTimeText = computed(() => {
   return `最近更新：${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 });
 
+const explanationSourceLabel = computed(() => {
+  switch (question.value?.explanationSource) {
+    case 'file':
+      return 'MD 文件';
+    case 'database':
+      return '数据库';
+    default:
+      return '';
+  }
+});
+
+const explanationFilePathText = computed(() => {
+  if (!question.value?.explanationFilePath) {
+    return '';
+  }
+
+  return `来源：${question.value.explanationFilePath}`;
+});
+
 async function loadRequestStatus() {
   if (!questionId.value) {
     return;
@@ -143,7 +162,20 @@ onPullDownRefresh(async () => {
             explanationTimeText
           }}</view>
         </view>
-        <view class="card__content">{{ question.explanationContent }}</view>
+        <view v-if="explanationSourceLabel || explanationFilePathText" class="card__section-meta">
+          <text v-if="explanationSourceLabel" class="card__source-tag">{{
+            explanationSourceLabel
+          }}</text>
+          <text v-if="explanationFilePathText" class="card__section-path">{{
+            explanationFilePathText
+          }}</text>
+        </view>
+        <rich-text
+          v-if="question.explanationRenderedHtml"
+          class="card__markdown"
+          :nodes="question.explanationRenderedHtml"
+        />
+        <view v-else class="card__content">{{ question.explanationContent }}</view>
       </view>
 
       <view v-if="question.hasExplanation || requestStatus || requestStatusError" class="card">
@@ -240,12 +272,101 @@ onPullDownRefresh(async () => {
     font-size: 22rpx;
   }
 
+  &__section-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12rpx;
+    align-items: center;
+  }
+
+  &__section-path {
+    color: #86909c;
+    font-size: 22rpx;
+  }
+
+  &__source-tag {
+    padding: 4rpx 14rpx;
+    border-radius: 999rpx;
+    background: #e8f3ff;
+    color: #1677ff;
+    font-size: 22rpx;
+    line-height: 1.5;
+  }
+
   &__content {
     line-height: 1.8;
     white-space: pre-wrap;
 
     &--error {
       color: #cf1322;
+    }
+  }
+
+  &__markdown {
+    color: #1f2329;
+    font-size: 28rpx;
+    line-height: 1.8;
+
+    :deep(p),
+    :deep(ul),
+    :deep(ol),
+    :deep(pre),
+    :deep(blockquote),
+    :deep(h1),
+    :deep(h2),
+    :deep(h3),
+    :deep(h4) {
+      margin: 0 0 16rpx;
+    }
+
+    :deep(ul),
+    :deep(ol) {
+      padding-left: 36rpx;
+    }
+
+    :deep(li) {
+      margin-bottom: 8rpx;
+    }
+
+    :deep(pre) {
+      overflow-x: auto;
+      padding: 20rpx;
+      border-radius: 16rpx;
+      background: #0f172a;
+      color: #e2e8f0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    :deep(code) {
+      padding: 2rpx 8rpx;
+      border-radius: 8rpx;
+      background: rgba(15, 23, 42, 0.06);
+      color: #c7254e;
+      font-size: 26rpx;
+    }
+
+    :deep(pre code) {
+      padding: 0;
+      background: transparent;
+      color: inherit;
+      font-size: 24rpx;
+    }
+
+    :deep(blockquote) {
+      padding-left: 20rpx;
+      border-left: 6rpx solid #91caff;
+      color: #4e5969;
+    }
+
+    :deep(a) {
+      color: #1677ff;
+      word-break: break-all;
+    }
+
+    :deep(img) {
+      max-width: 100%;
+      border-radius: 16rpx;
     }
   }
 

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { resolveEffectiveExplanation } from '../../shared/question-explanations';
 import { QueryQuestionsDto } from './dto/query-questions.dto';
 
 @Injectable()
@@ -31,6 +32,12 @@ export class QuestionsService {
           difficulty: true,
           tags: true,
           hasExplanation: true,
+          explanation: {
+            select: {
+              content: true,
+              updatedAt: true,
+            },
+          },
           category: {
             select: {
               id: true,
@@ -41,8 +48,31 @@ export class QuestionsService {
       }),
     ]);
 
+    const effectiveList = await Promise.all(
+      list.map(async (item) => {
+        const explanation = await resolveEffectiveExplanation({
+          id: item.id,
+          title: item.title,
+          categoryName: item.category.name,
+          dbContent: item.explanation?.content,
+          dbUpdatedAt: item.explanation?.updatedAt,
+          dbHasExplanation: item.hasExplanation,
+        });
+
+        return {
+          id: item.id,
+          title: item.title,
+          summary: item.summary,
+          difficulty: item.difficulty,
+          tags: item.tags,
+          hasExplanation: explanation.hasExplanation,
+          category: item.category,
+        };
+      }),
+    );
+
     return {
-      list,
+      list: effectiveList,
       total,
       page: query.page,
       pageSize: query.pageSize,
@@ -81,10 +111,23 @@ export class QuestionsService {
       throw new NotFoundException('题目不存在');
     }
 
+    const explanation = await resolveEffectiveExplanation({
+      id: question.id,
+      title: question.title,
+      categoryName: question.category.name,
+      dbContent: question.explanation?.content,
+      dbUpdatedAt: question.explanation?.updatedAt,
+      dbHasExplanation: question.hasExplanation,
+    });
+
     return {
       ...question,
-      explanationContent: question.explanation?.content || null,
-      explanationUpdatedAt: question.explanation?.updatedAt || null,
+      hasExplanation: explanation.hasExplanation,
+      explanationContent: explanation.content,
+      explanationRenderedHtml: explanation.renderedHtml,
+      explanationUpdatedAt: explanation.updatedAt,
+      explanationSource: explanation.source,
+      explanationFilePath: explanation.filePath,
     };
   }
 
@@ -93,7 +136,19 @@ export class QuestionsService {
       where: { id },
       select: {
         id: true,
+        title: true,
         hasExplanation: true,
+        explanation: {
+          select: {
+            content: true,
+            updatedAt: true,
+          },
+        },
+        category: {
+          select: {
+            name: true,
+          },
+        },
         explanationRequest: {
           select: {
             status: true,
@@ -108,8 +163,17 @@ export class QuestionsService {
       throw new NotFoundException('题目不存在');
     }
 
+    const explanation = await resolveEffectiveExplanation({
+      id: question.id,
+      title: question.title,
+      categoryName: question.category.name,
+      dbContent: question.explanation?.content,
+      dbUpdatedAt: question.explanation?.updatedAt,
+      dbHasExplanation: question.hasExplanation,
+    });
+
     return {
-      hasExplanation: question.hasExplanation,
+      hasExplanation: explanation.hasExplanation,
       hasRequest: Boolean(question.explanationRequest),
       status: question.explanationRequest?.status,
       supportCount: question.explanationRequest?.supportCount || 0,

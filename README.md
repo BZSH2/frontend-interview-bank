@@ -13,6 +13,7 @@
 - 用户端浏览题目、查看详情、提交“新增讲解”申请
 - 后台管理题目 / 分类 / 讲解申请
 - 后台支持补录讲解，并自动把关联申请置为 `DONE`
+- 支持用 `content/question-explanations/*.md` 为题目提供外部 Markdown 讲解（用户端优先渲染）
 - 讲解申请可选择同步到 GitHub Issue
 - 提供种子数据、构建脚本、运行态产物检查、CI、容器化交付脚手架
 
@@ -32,6 +33,7 @@ frontend-interview-bank/
 ├─ admin-web/
 ├─ api-server/
 ├─ app-uni/
+├─ content/
 ├─ deploy/
 ├─ docs/
 ├─ scripts/
