@@ -162,6 +162,9 @@ importers:
       pinia:
         specifier: 2.1.7
         version: 2.1.7(typescript@5.8.2)(vue@3.4.21(typescript@5.8.2))
+      vditor:
+        specifier: ^3.11.2
+        version: 3.11.2
       vue:
         specifier: 3.4.21
         version: 3.4.21(typescript@5.8.2)
@@ -4407,6 +4410,12 @@ packages:
       }
     engines: { node: '>=8' }
 
+  diff-match-patch@1.0.5:
+    resolution:
+      {
+        integrity: sha512-IayShXAgj/QMXgB0IWmKx+rOPuGMhqm5w6jvFxmVenXKIzRqTAAsbBPT3kWQeGANj3jGgvcvv4yK6SxqYmikgw==,
+      }
+
   diff@4.0.4:
     resolution:
       {
@@ -7744,6 +7753,12 @@ packages:
         integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==,
       }
     engines: { node: '>= 0.8' }
+
+  vditor@3.11.2:
+    resolution:
+      {
+        integrity: sha512-8QguQQUPWbBFocnfQmWjz4jiykQnvsmCuhOomGIVVK7vc+dQq2h8w9qQQuEjUTZpnZT5fEdYbj4aLr1NGdAZaA==,
+      }
 
   vite@5.2.8:
     resolution:
@@ -11239,6 +11254,8 @@ snapshots:
   detect-libc@2.1.2:
     optional: true
 
+  diff-match-patch@1.0.5: {}
+
   diff@4.0.4: {}
 
   dom-walk@0.1.2: {}
@@ -13172,6 +13189,10 @@ snapshots:
   validator@13.15.26: {}
 
   vary@1.1.2: {}
+
+  vditor@3.11.2:
+    dependencies:
+      diff-match-patch: 1.0.5
 
   vite@5.2.8(@types/node@22.13.10)(sass@1.85.1)(terser@5.46.0):
     dependencies:

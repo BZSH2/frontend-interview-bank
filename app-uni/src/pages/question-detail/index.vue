@@ -3,6 +3,7 @@ import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app';
 import { computed, ref } from 'vue';
 
 import MarkdownViewer from '@/components/markdown-viewer.vue';
+import VditorPreviewH5 from '@/components/vditor-preview-h5.vue';
 import { getQuestionDetail, getQuestionRequestStatus } from '@/services/question';
 import type { QuestionDetail, QuestionRequestStatus } from '@/types/question';
 import { getDifficultyLabel } from '@/utils/question';
@@ -171,7 +172,12 @@ onPullDownRefresh(async () => {
             explanationFilePathText
           }}</text>
         </view>
+        <!-- #ifdef H5 -->
+        <VditorPreviewH5 class="card__markdown" :source="question.explanationContent" />
+        <!-- #endif -->
+        <!-- #ifndef H5 -->
         <MarkdownViewer class="card__markdown" :source="question.explanationContent" />
+        <!-- #endif -->
       </view>
 
       <view v-if="question.hasExplanation || requestStatus || requestStatusError" class="card">
