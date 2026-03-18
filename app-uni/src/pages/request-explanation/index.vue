@@ -117,12 +117,14 @@ onLoad((options) => {
 
       <view class="card">
         <view class="card__label">补充方向</view>
-        <textarea
-          v-model="note"
-          class="card__textarea"
-          maxlength="300"
-          placeholder="比如：希望加真实面试追问、代码示例、性能场景分析..."
-        />
+        <view class="card__textarea-wrap">
+          <textarea
+            v-model="note"
+            class="card__textarea"
+            maxlength="300"
+            placeholder="比如：希望加真实面试追问、代码示例、性能场景分析..."
+          />
+        </view>
         <view class="card__footer">
           <view class="card__hint">备注为选填；仅输入空格时会自动按“未填写”处理。</view>
           <view class="card__count">{{ noteLength }}/300</view>
@@ -199,13 +201,20 @@ onLoad((options) => {
     line-height: 1.4;
   }
 
+  &__textarea-wrap {
+    padding: 2rpx;
+    border: 1px solid rgba(22, 28, 45, 0.06);
+    border-radius: 22rpx;
+    background: #f8f7f4;
+  }
+
   &__textarea {
     width: 100%;
     min-height: 240rpx;
     padding: 22rpx 24rpx;
-    border-radius: 22rpx;
-    background: #f8f7f4;
-    line-height: 1.7;
+    border-radius: 20rpx;
+    background: transparent;
+    line-height: 1.76;
   }
 
   &__footer {
@@ -243,6 +252,7 @@ onLoad((options) => {
 }
 
 .submit-btn {
+  width: 100%;
   margin-top: 8rpx;
   border-radius: 999rpx;
   font-size: 28rpx;

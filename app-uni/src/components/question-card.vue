@@ -57,7 +57,7 @@ function getDifficultyClass() {
 .question-card {
   display: flex;
   flex-direction: column;
-  gap: 14rpx;
+  gap: 16rpx;
   padding: 28rpx;
   border: 1px solid rgba(15, 23, 42, 0.04);
   border-radius: 28rpx;
@@ -70,6 +70,8 @@ function getDifficultyClass() {
     align-items: center;
     justify-content: space-between;
     gap: 12rpx;
+    padding-top: 14rpx;
+    border-top: 1px solid rgba(22, 28, 45, 0.06);
   }
 
   &__category,
@@ -110,7 +112,7 @@ function getDifficultyClass() {
 
   &__summary {
     color: $sub-text-color;
-    line-height: 1.7;
+    line-height: 1.74;
     font-size: 25rpx;
   }
 

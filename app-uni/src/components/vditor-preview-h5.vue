@@ -218,9 +218,9 @@ onBeforeUnmount(() => {
   :deep(.vditor-reset blockquote) {
     margin: 0 0 18rpx;
     padding: 18rpx 20rpx 18rpx 22rpx;
-    border-left: 4rpx solid #d8d4cc;
+    border-left: 3rpx solid #d8d4cc;
     border-radius: 0 16rpx 16rpx 0;
-    background: #faf9f7;
+    background: #fbfaf8;
     color: #667085;
   }
 

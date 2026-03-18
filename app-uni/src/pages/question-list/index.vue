@@ -204,13 +204,16 @@ onPullDownRefresh(async () => {
     </view>
 
     <view class="toolbar-card">
-      <input
-        v-model="keywordInput"
-        class="toolbar-card__input"
-        confirm-type="search"
-        placeholder="搜索题目标题 / 摘要 / 标签 / 关键词"
-        @confirm="handleSearch"
-      />
+      <view class="toolbar-card__input-wrap">
+        <text class="toolbar-card__icon">⌕</text>
+        <input
+          v-model="keywordInput"
+          class="toolbar-card__input"
+          confirm-type="search"
+          placeholder="搜索题目标题 / 摘要 / 标签 / 关键词"
+          @confirm="handleSearch"
+        />
+      </view>
       <view class="toolbar-card__actions">
         <button
           class="toolbar-card__button toolbar-card__button--primary"
@@ -276,7 +279,7 @@ onPullDownRefresh(async () => {
 
     <view class="summary-bar">
       <view class="summary-bar__main">{{ filterSummary }}</view>
-      <view class="summary-bar__sub">{{ resultSummary }}</view>
+      <view class="summary-bar__count">{{ resultSummary }}</view>
     </view>
 
     <view v-if="loading" class="state">正在加载题目...</view>
@@ -382,12 +385,26 @@ onPullDownRefresh(async () => {
   gap: 16rpx;
   padding: 24rpx;
 
-  &__input {
-    width: 100%;
-    padding: 22rpx 24rpx;
+  &__input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14rpx;
+    padding: 0 22rpx;
+    border: 1px solid rgba(22, 28, 45, 0.06);
     border-radius: 20rpx;
     background: #f8f7f4;
+  }
+
+  &__icon {
+    color: $muted-text-color;
     font-size: 26rpx;
+  }
+
+  &__input {
+    width: 100%;
+    height: 84rpx;
+    font-size: 26rpx;
+    background: transparent;
   }
 
   &__actions {
@@ -397,9 +414,11 @@ onPullDownRefresh(async () => {
   }
 
   &__button {
+    min-width: 132rpx;
     padding: 0 28rpx;
     border-radius: 999rpx;
     font-size: 24rpx;
+    font-weight: 600;
 
     &--primary {
       background: $brand-gradient;
@@ -465,6 +484,9 @@ onPullDownRefresh(async () => {
   }
 
   &__current {
+    padding: 8rpx 14rpx;
+    border-radius: 999rpx;
+    background: #f8f7f4;
     color: $muted-text-color;
     font-size: 22rpx;
   }
@@ -473,7 +495,7 @@ onPullDownRefresh(async () => {
 .category-row {
   position: relative;
   display: inline-flex;
-  gap: 28rpx;
+  gap: 30rpx;
   min-width: 100%;
   padding-bottom: 6rpx;
 
@@ -493,10 +515,11 @@ onPullDownRefresh(async () => {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-  padding: 8rpx 0 18rpx;
+  padding: 10rpx 0 18rpx;
   color: $muted-text-color;
   font-size: 26rpx;
   font-weight: 500;
+  letter-spacing: 0.01em;
 
   &::after {
     content: '';
@@ -521,20 +544,27 @@ onPullDownRefresh(async () => {
 
 .summary-bar {
   display: flex;
-  flex-direction: column;
-  gap: 8rpx;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
   padding: 22rpx 24rpx;
 
   &__main {
+    flex: 1;
     color: $text-color;
     line-height: 1.68;
     font-size: 25rpx;
     font-weight: 600;
   }
 
-  &__sub {
-    color: $muted-text-color;
-    font-size: 23rpx;
+  &__count {
+    flex-shrink: 0;
+    padding: 8rpx 14rpx;
+    border-radius: 999rpx;
+    background: #f8f7f4;
+    color: $brand-secondary-color;
+    font-size: 22rpx;
+    font-weight: 600;
   }
 }
 

@@ -168,9 +168,11 @@ onLoad((options) => {
   &__actions {
     display: flex;
     flex-direction: column;
-    gap: 16rpx;
+    gap: 14rpx;
     width: 100%;
     margin-top: 10rpx;
+    padding-top: 8rpx;
+    border-top: 1px solid rgba(22, 28, 45, 0.06);
   }
 
   &__button {

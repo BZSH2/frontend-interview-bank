@@ -17,7 +17,7 @@ const markdown = new MarkdownIt({
 
 markdown.renderer.rules.code_inline = (tokens, idx) => {
   const content = markdown.utils.escapeHtml(tokens[idx].content);
-  return `<code style="display:inline-block;padding:4rpx 10rpx;border-radius:10rpx;background:#f4f3f0;color:#3f4a66;font-family:SFMono-Regular,Consolas,Monaco,monospace;font-size:0.92em;word-break:break-word;">${content}</code>`;
+  return `<code style="display:inline-block;padding:4rpx 10rpx;border-radius:10rpx;background:#f6f5f2;color:#2b344a;font-family:SFMono-Regular,Consolas,Monaco,monospace;font-size:0.92em;word-break:break-word;">${content}</code>`;
 };
 
 markdown.renderer.rules.fence = (tokens, idx) => {
@@ -49,7 +49,7 @@ const tagStyle: Record<string, string> = {
   ol: 'margin: 0 0 18rpx; padding-left: 1.5em; color: #121826; font-size: 28rpx; line-height: 1.85;',
   li: 'margin: 0 0 10rpx; color: #121826; font-size: 28rpx; line-height: 1.85;',
   blockquote:
-    'margin: 0 0 20rpx; padding: 18rpx 20rpx 18rpx 22rpx; border-left: 4rpx solid #d8d4cc; border-radius: 0 16rpx 16rpx 0; background: #faf9f7; color: #667085; line-height: 1.85; box-sizing: border-box;',
+    'margin: 0 0 20rpx; padding: 18rpx 20rpx 18rpx 22rpx; border-left: 3rpx solid #d8d4cc; border-radius: 0 16rpx 16rpx 0; background: #fbfaf8; color: #667085; line-height: 1.85; box-sizing: border-box;',
   hr: 'margin: 24rpx 0; border: 0; border-top: 1px solid #ebe7df;',
   a: 'color: #3f4a66; word-break: break-all; text-decoration: none;',
   strong: 'font-weight: 700; color: #121826;',

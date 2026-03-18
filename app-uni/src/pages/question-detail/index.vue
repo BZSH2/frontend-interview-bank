@@ -140,6 +140,7 @@ onPullDownRefresh(async () => {
 
     <template v-else-if="question">
       <view class="hero-card">
+        <view class="hero-card__topline">题目 #{{ question.id }}</view>
         <view class="hero-card__badges">
           <text class="hero-card__badge hero-card__badge--category">{{
             question.category.name
@@ -252,6 +253,13 @@ onPullDownRefresh(async () => {
 }
 
 .hero-card {
+  &__topline {
+    color: $muted-text-color;
+    font-size: 22rpx;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
   &__badges {
     display: flex;
     flex-wrap: wrap;
@@ -310,6 +318,7 @@ onPullDownRefresh(async () => {
   }
 
   &__content {
+    padding-top: 6rpx;
     color: $sub-text-color;
     line-height: 1.82;
     white-space: pre-wrap;
@@ -330,6 +339,8 @@ onPullDownRefresh(async () => {
     justify-content: space-between;
     align-items: flex-start;
     gap: 16rpx;
+    padding-bottom: 12rpx;
+    border-bottom: 1px solid rgba(22, 28, 45, 0.06);
   }
 
   &__title {
@@ -399,8 +410,8 @@ onPullDownRefresh(async () => {
 
   &__actions {
     display: flex;
-    flex-wrap: wrap;
-    gap: 16rpx;
+    flex-direction: column;
+    gap: 12rpx;
   }
 }
 
@@ -427,12 +438,14 @@ onPullDownRefresh(async () => {
 }
 
 .action-btn {
+  width: 100%;
   padding: 0 30rpx;
   border-radius: 999rpx;
   background: #fff;
   color: $brand-color;
   border: 1px solid rgba(22, 28, 45, 0.08);
   font-size: 24rpx;
+  font-weight: 600;
 
   &--primary {
     background: $brand-gradient;
