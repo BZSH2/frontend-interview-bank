@@ -52,7 +52,7 @@ pull_if_present "$ADMIN_RUNTIME_IMAGE"
 docker compose \
   --env-file "$RUNTIME_ENV_FILE" \
   -f "$COMPOSE_FILE" \
-  up -d --remove-orphans
+  up -d --force-recreate --remove-orphans
 
 for _ in $(seq 1 40); do
   if curl -fsS "http://127.0.0.1:${API_HOST_PORT}/api/health/ready" >/dev/null \
