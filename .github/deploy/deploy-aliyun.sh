@@ -11,6 +11,19 @@ APP_HOST_PORT="${APP_HOST_PORT:-36080}"
 ADMIN_HOST_PORT="${ADMIN_HOST_PORT:-36081}"
 APP_DOMAIN="${APP_DOMAIN:-uni.bzsh.fun}"
 
+get_env_value() {
+  local key="$1"
+  grep -E "^${key}=" "$RUNTIME_ENV_FILE" | head -n 1 | cut -d'=' -f2-
+}
+
+pull_if_present() {
+  local image="$1"
+  if [ -n "$image" ]; then
+    echo "Pulling image: $image"
+    docker pull "$image"
+  fi
+}
+
 if [ ! -f "$COMPOSE_FILE" ]; then
   echo "Compose file not found: $COMPOSE_FILE" >&2
   exit 1
@@ -28,10 +41,13 @@ fi
 
 cd "$DEPLOY_PATH"
 
-docker compose \
-  --env-file "$RUNTIME_ENV_FILE" \
-  -f "$COMPOSE_FILE" \
-  pull
+API_RUNTIME_IMAGE="$(get_env_value API_RUNTIME_IMAGE || true)"
+APP_RUNTIME_IMAGE="$(get_env_value APP_RUNTIME_IMAGE || true)"
+ADMIN_RUNTIME_IMAGE="$(get_env_value ADMIN_RUNTIME_IMAGE || true)"
+
+pull_if_present "$API_RUNTIME_IMAGE"
+pull_if_present "$APP_RUNTIME_IMAGE"
+pull_if_present "$ADMIN_RUNTIME_IMAGE"
 
 docker compose \
   --env-file "$RUNTIME_ENV_FILE" \
