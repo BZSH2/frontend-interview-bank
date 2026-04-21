@@ -24,7 +24,7 @@
 - **Admin**：Vue 3 + Vite + TypeScript
 - **Server**：NestJS + Prisma + MySQL
 - **Code Quality**：ESLint + Prettier + lint-staged + Husky + Commitlint
-- **Automation**：GitHub Actions + GHCR 运行态镜像发布
+- **Automation**：GitHub Actions + GHCR 运行态镜像发布 + 阿里云自动部署
 
 ## 项目结构
 
@@ -43,15 +43,12 @@ frontend-interview-bank/
 
 ## 推荐交付策略（重要）
 
-当前仓库已经把部署口径收口为：
+当前仓库已经把部署口径收口为 **两段式自动化链路**：
 
-1. **本地或 GitHub Actions hosted runner** 负责安装依赖、lint / typecheck、build、运行态产物检查、构建并发布运行态镜像。
-2. **服务器** 只负责：
-   - 准备 `api-server/.env`
-   - 准备 `deploy/docker/.env.runtime`
-   - `docker compose pull`
-   - `docker compose up -d`
-3. **当前服务器不再推荐执行** `pnpm install`、`pnpm bootstrap:dev`、`pnpm build:all` 这类源码级安装/构建流程。
+1. **`ci.yml`**：负责安装依赖、lint / typecheck、build、运行态产物检查。
+2. **`deploy.yml`**：在 `ci` 成功后，统一完成 GHCR 镜像发布 + SSH 到阿里云服务器执行部署。
+3. **服务器** 只负责运行镜像，不再承担 `pnpm install` / `pnpm build` 这类源码级工作。
+4. **公网入口** 统一交给 `uni.bzsh.fun`，由宿主机 Caddy 反代到本项目 H5 容器。
 
 推荐端口统一为：
 
@@ -60,10 +57,11 @@ frontend-interview-bank/
 - 管理后台：`36081`
 - MySQL：`33307`
 
-这样可避开当前机器上已存在的：
+这些端口在 runtime compose 中默认只绑定到 `127.0.0.1`，用于：
 
-- `vue-admin`：占用 `80`
-- `nest-admin`：占用 `35000`
+- 避让当前机器已存在的 `vue-admin:80`、`nest-admin:35000`
+- 避免把 API / Admin / MySQL 直接暴露到公网
+- 让公网访问统一走域名与反向代理
 
 > 推荐运行态编排文件：`deploy/docker/docker-compose.nest-admin-style.runtime.yml`
 >
@@ -73,43 +71,22 @@ frontend-interview-bank/
 
 ## 当前服务器推荐步骤（摘要）
 
-1. 先让 GitHub Actions 发布 GHCR 镜像：见 `docs/automated-deployment.md`
-2. 在服务器准备配置：
-
-```bash
-cp deploy/docker/.env.runtime.example deploy/docker/.env.runtime
-cp api-server/.env.example api-server/.env
-```
-
-3. 修改：
-   - `deploy/docker/.env.runtime` 里的镜像地址 / tag / MySQL 密码
-   - `api-server/.env` 里的业务环境变量
-4. 若 GHCR 包是私有的，先登录：
-
-```bash
-docker login ghcr.io
-```
-
-5. 启动纯运行态 compose：
-
-```bash
-docker compose \
-  --env-file deploy/docker/.env.runtime \
-  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml pull
-
-docker compose \
-  --env-file deploy/docker/.env.runtime \
-  -f deploy/docker/docker-compose.nest-admin-style.runtime.yml up -d
-```
-
+1. 在 GitHub 仓库配置好 Actions secrets / vars：见 `docs/automated-deployment.md`
+2. 把 DNS `uni.bzsh.fun` 的 A 记录指向阿里云服务器公网 IP：`8.133.21.62`
+3. 在宿主机 Caddy 加入 `deploy/caddy/uni.bzsh.fun.Caddyfile.example` 对应站点配置
+4. push 到 `main`
+5. 等待工作流按顺序完成：
+   - `ci`
+   - `deploy`
 6. 验证：
 
 ```bash
 curl -fsS http://127.0.0.1:36000/api/health/live
 curl -fsS http://127.0.0.1:36000/api/health/ready
+curl -I http://127.0.0.1:36080
 ```
 
-详细步骤见：`docs/current-server-deployment.md`
+详细步骤见：`docs/current-server-deployment.md` 和 `docs/automated-deployment.md`
 
 ## 本地开发快速开始
 
@@ -299,23 +276,29 @@ pnpm smoke:test
 - `pnpm --filter admin-web build`
 - `sh scripts/check-runtime-artifacts.sh`
 
-### 运行态镜像发布
+### 部署
 
-文件：`.github/workflows/runtime-images.yml`
+文件：`.github/workflows/deploy.yml`
 
 在以下情况执行：
 
 - `ci.yml` 在 `main` 分支对应提交上通过后自动触发
 - 或手动触发 `workflow_dispatch`
 
-工作流会：
+工作流会在同一个 workflow 中完成：
 
-- 使用 GitHub Actions hosted runner
 - 构建 API / H5 / Admin 三个运行态镜像
 - 发布到 GHCR
 - 产出 `main` 与 `sha-*` 标签
+- 通过 SSH 登录阿里云服务器
+- 把 runtime env 与 `api-server/.env` 渲染到服务器
+- 把 compose 镜像 tag 固定到本次提交对应的 `sha-*`
+- 执行 `docker compose pull && docker compose up -d`
+- 做本机健康检查
 
-服务器只需 pull + up，不需要 `pnpm install`。
+公网访问入口固定为：`https://uni.bzsh.fun`
+
+整个链路里，服务器都不需要执行 `pnpm install`。
 
 ## 相关文档
 
@@ -325,4 +308,5 @@ pnpm smoke:test
 - 发布检查清单：`docs/release-checklist.md`
 - Docker 运行态 compose：`deploy/docker/docker-compose.nest-admin-style.runtime.yml`
 - Docker 本地构建 compose：`deploy/docker/docker-compose.nest-admin-style.yml`
+- Caddy 域名示例：`deploy/caddy/uni.bzsh.fun.Caddyfile.example`
 - Nginx 容器配置：`deploy/nginx/*.container.conf`

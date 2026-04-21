@@ -1,0 +1,260 @@
+name: deploy
+
+on:
+  workflow_run:
+    workflows: ['ci']
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to deploy
+        required: false
+        default: main
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.context.outputs.sha }}
+      owner: ${{ steps.context.outputs.owner }}
+      publish_main: ${{ steps.context.outputs.publish_main }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.event.workflow_run.head_sha }}
+
+      - name: Resolve deploy context
+        id: context
+        shell: bash
+        run: |
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+          if [ "${{ github.event_name }}" = 'workflow_dispatch' ]; then
+            case "${{ github.event.inputs.ref || 'main' }}" in
+              main|refs/heads/main)
+                echo 'publish_main=true' >> "$GITHUB_OUTPUT"
+                ;;
+              *)
+                echo 'publish_main=false' >> "$GITHUB_OUTPUT"
+                ;;
+            esac
+          else
+            echo 'publish_main=true' >> "$GITHUB_OUTPUT"
+          fi
+
+  publish-images:
+    name: Publish ${{ matrix.name }} image
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            image_name: frontend-interview-bank-api
+            dockerfile: api-server/Dockerfile
+            build_args: ''
+          - name: web
+            image_name: frontend-interview-bank-web
+            dockerfile: app-uni/Dockerfile
+            build_args: |
+              VITE_API_BASE_URL=/api
+          - name: admin
+            image_name: frontend-interview-bank-admin
+            dockerfile: admin-web/Dockerfile
+            build_args: |
+              VITE_API_BASE_URL=/api
+              VITE_ADMIN_TOKEN=
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: tags
+        shell: bash
+        run: |
+          IMAGE_BASE="ghcr.io/${{ needs.prepare.outputs.owner }}/${{ matrix.image_name }}"
+          echo "sha_tag=${IMAGE_BASE}:sha-${{ needs.prepare.outputs.sha }}" >> "$GITHUB_OUTPUT"
+          echo "main_tag=${IMAGE_BASE}:main" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push ${{ matrix.name }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ steps.tags.outputs.sha_tag }}
+            ${{ needs.prepare.outputs.publish_main == 'true' && steps.tags.outputs.main_tag || '' }}
+          build-args: ${{ matrix.build_args }}
+
+  deploy:
+    needs:
+      - prepare
+      - publish-images
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_PATH: ${{ vars.ALIYUN_DEPLOY_PATH || '/opt/frontend-interview-bank' }}
+      APP_DOMAIN: ${{ vars.ALIYUN_APP_DOMAIN || 'uni.bzsh.fun' }}
+      API_HOST_PORT: ${{ vars.API_HOST_PORT || '36000' }}
+      APP_HOST_PORT: ${{ vars.APP_HOST_PORT || '36080' }}
+      ADMIN_HOST_PORT: ${{ vars.ADMIN_HOST_PORT || '36081' }}
+      MYSQL_HOST_PORT: ${{ vars.MYSQL_HOST_PORT || '33307' }}
+      MYSQL_DATABASE: ${{ vars.MYSQL_DATABASE || 'frontend_interview_bank' }}
+      MYSQL_USER: ${{ vars.MYSQL_USER || 'interview_app' }}
+      GITHUB_OWNER: ${{ vars.ISSUES_GITHUB_OWNER || 'BZSH2' }}
+      GITHUB_REPO: ${{ vars.ISSUES_GITHUB_REPO || 'frontend-interview-bank' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+
+      - name: Validate required secrets
+        env:
+          ALIYUN_ECS_HOST: ${{ secrets.ALIYUN_ECS_HOST }}
+          ALIYUN_ECS_USER: ${{ secrets.ALIYUN_ECS_USER }}
+          ALIYUN_ECS_SSH_KEY: ${{ secrets.ALIYUN_ECS_SSH_KEY }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+        shell: bash
+        run: |
+          test -n "$ALIYUN_ECS_HOST" || { echo 'Missing secret: ALIYUN_ECS_HOST'; exit 1; }
+          test -n "$ALIYUN_ECS_USER" || { echo 'Missing secret: ALIYUN_ECS_USER'; exit 1; }
+          test -n "$ALIYUN_ECS_SSH_KEY" || { echo 'Missing secret: ALIYUN_ECS_SSH_KEY'; exit 1; }
+          test -n "$MYSQL_ROOT_PASSWORD" || { echo 'Missing secret: MYSQL_ROOT_PASSWORD'; exit 1; }
+          test -n "$MYSQL_PASSWORD" || { echo 'Missing secret: MYSQL_PASSWORD'; exit 1; }
+
+      - name: Setup SSH key
+        env:
+          ALIYUN_ECS_SSH_KEY: ${{ secrets.ALIYUN_ECS_SSH_KEY }}
+        shell: bash
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$ALIYUN_ECS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Trust deploy host
+        env:
+          ALIYUN_ECS_HOST: ${{ secrets.ALIYUN_ECS_HOST }}
+          ALIYUN_ECS_PORT: ${{ vars.ALIYUN_ECS_PORT || '22' }}
+        shell: bash
+        run: |
+          ssh-keyscan -p "$ALIYUN_ECS_PORT" -H "$ALIYUN_ECS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Render runtime env files
+        shell: bash
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          GITHUB_SYNC_TOKEN: ${{ secrets.GITHUB_SYNC_TOKEN }}
+        run: |
+          install -d .deploy-bundle/deploy/docker .deploy-bundle/api-server
+
+          cat > .deploy-bundle/deploy/docker/.env.runtime <<EOF
+          API_RUNTIME_IMAGE=ghcr.io/${{ needs.prepare.outputs.owner }}/frontend-interview-bank-api:sha-${{ needs.prepare.outputs.sha }}
+          APP_RUNTIME_IMAGE=ghcr.io/${{ needs.prepare.outputs.owner }}/frontend-interview-bank-web:sha-${{ needs.prepare.outputs.sha }}
+          ADMIN_RUNTIME_IMAGE=ghcr.io/${{ needs.prepare.outputs.owner }}/frontend-interview-bank-admin:sha-${{ needs.prepare.outputs.sha }}
+          API_HOST_PORT=${API_HOST_PORT}
+          APP_HOST_PORT=${APP_HOST_PORT}
+          ADMIN_HOST_PORT=${ADMIN_HOST_PORT}
+          MYSQL_HOST_PORT=${MYSQL_HOST_PORT}
+          MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+          MYSQL_DATABASE=${MYSQL_DATABASE}
+          MYSQL_USER=${MYSQL_USER}
+          MYSQL_PASSWORD=${MYSQL_PASSWORD}
+          EOF
+
+          cat > .deploy-bundle/api-server/.env <<EOF
+          PORT=3000
+          DATABASE_URL=mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@127.0.0.1:${MYSQL_HOST_PORT}/${MYSQL_DATABASE}
+          GITHUB_OWNER=${GITHUB_OWNER}
+          GITHUB_REPO=${GITHUB_REPO}
+          ADMIN_TOKEN=${ADMIN_TOKEN}
+          GITHUB_TOKEN=${GITHUB_SYNC_TOKEN}
+          EOF
+
+      - name: Prepare remote deploy directory
+        env:
+          ALIYUN_ECS_HOST: ${{ secrets.ALIYUN_ECS_HOST }}
+          ALIYUN_ECS_USER: ${{ secrets.ALIYUN_ECS_USER }}
+          ALIYUN_ECS_PORT: ${{ vars.ALIYUN_ECS_PORT || '22' }}
+        shell: bash
+        run: |
+          ssh -p "$ALIYUN_ECS_PORT" "$ALIYUN_ECS_USER@$ALIYUN_ECS_HOST" \
+            "mkdir -p '${DEPLOY_PATH}/deploy/docker' '${DEPLOY_PATH}/api-server'"
+
+      - name: Upload deploy bundle
+        env:
+          ALIYUN_ECS_HOST: ${{ secrets.ALIYUN_ECS_HOST }}
+          ALIYUN_ECS_USER: ${{ secrets.ALIYUN_ECS_USER }}
+          ALIYUN_ECS_PORT: ${{ vars.ALIYUN_ECS_PORT || '22' }}
+        shell: bash
+        run: |
+          scp -P "$ALIYUN_ECS_PORT" \
+            deploy/docker/docker-compose.nest-admin-style.runtime.yml \
+            .github/deploy/deploy-aliyun.sh \
+            .deploy-bundle/deploy/docker/.env.runtime \
+            .deploy-bundle/api-server/.env \
+            "$ALIYUN_ECS_USER@$ALIYUN_ECS_HOST:${DEPLOY_PATH}/"
+
+          ssh -p "$ALIYUN_ECS_PORT" "$ALIYUN_ECS_USER@$ALIYUN_ECS_HOST" \
+            "mv '${DEPLOY_PATH}/docker-compose.nest-admin-style.runtime.yml' '${DEPLOY_PATH}/deploy/docker/docker-compose.nest-admin-style.runtime.yml' && \
+             mv '${DEPLOY_PATH}/.env.runtime' '${DEPLOY_PATH}/deploy/docker/.env.runtime' && \
+             mv '${DEPLOY_PATH}/.env' '${DEPLOY_PATH}/api-server/.env' && \
+             chmod +x '${DEPLOY_PATH}/deploy-aliyun.sh'"
+
+      - name: Deploy on server
+        env:
+          ALIYUN_ECS_HOST: ${{ secrets.ALIYUN_ECS_HOST }}
+          ALIYUN_ECS_USER: ${{ secrets.ALIYUN_ECS_USER }}
+          ALIYUN_ECS_PORT: ${{ vars.ALIYUN_ECS_PORT || '22' }}
+        shell: bash
+        run: |
+          ssh -p "$ALIYUN_ECS_PORT" "$ALIYUN_ECS_USER@$ALIYUN_ECS_HOST" "
+            set -e
+            export DEPLOY_PATH='${DEPLOY_PATH}'
+            export APP_DOMAIN='${APP_DOMAIN}'
+            export API_HOST_PORT='${API_HOST_PORT}'
+            export APP_HOST_PORT='${APP_HOST_PORT}'
+            export ADMIN_HOST_PORT='${ADMIN_HOST_PORT}'
+            bash '${DEPLOY_PATH}/deploy-aliyun.sh'
+          "
+
+      - name: Deployment complete
+        shell: bash
+        run: |
+          echo "✅ frontend-interview-bank deployed to ${APP_DOMAIN}"
+          echo "Deployed image tag: sha-${{ needs.prepare.outputs.sha }}"

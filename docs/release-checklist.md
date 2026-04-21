@@ -8,7 +8,7 @@
 ### API
 
 - [ ] `api-server/.env` 已存在
-- [ ] `GITHUB_OWNER` / `GITHUB_REPO` 已设置
+- [ ] `GITHUB_OWNER` / `GITHUB_REPO`（API 运行时 env）已设置
 - [ ] `GITHUB_TOKEN` 已配置或明确留空
 - [ ] `ADMIN_TOKEN` 已按需配置
 
@@ -51,10 +51,9 @@
 ## 六、自动化 / 镜像发布检查
 
 - [ ] `.github/workflows/ci.yml` 运行通过
-- [ ] `.github/workflows/runtime-images.yml` 已成功发布 GHCR 运行态镜像
+- [ ] `.github/workflows/deploy.yml` 已成功发布 GHCR 运行态镜像并把指定 `sha-*` 镜像部署到阿里云
 - [ ] 已记录本次使用的镜像 tag（建议 `sha-*`）
-- [ ] 如果 GHCR 包是私有的，服务器已完成 `docker login ghcr.io`
-- [ ] 已确认不再依赖 SSH + rsync + 远程 `pnpm install`
+- [ ] 已确认不再依赖“服务器源码构建”，自动部署只执行 pull / up
 
 ## 七、安全检查
 

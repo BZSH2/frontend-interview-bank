@@ -11,7 +11,7 @@ services:
       MYSQL_USER: ${MYSQL_USER:-interview_app}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change_me_app_password}
     ports:
-      - '${MYSQL_HOST_PORT:-33307}:3306'
+      - '127.0.0.1:${MYSQL_HOST_PORT:-33307}:3306'
     healthcheck:
       test:
         [
@@ -39,7 +39,7 @@ services:
       DATABASE_URL: mysql://${MYSQL_USER:-interview_app}:${MYSQL_PASSWORD:-change_me_app_password}@interview-bank-mysql:3306/${MYSQL_DATABASE:-frontend_interview_bank}
       PORT: 3000
     ports:
-      - '${API_HOST_PORT:-36000}:3000'
+      - '127.0.0.1:${API_HOST_PORT:-36000}:3000'
     healthcheck:
       test:
         [
@@ -60,7 +60,7 @@ services:
     container_name: interview-bank-web
     restart: unless-stopped
     ports:
-      - '${APP_HOST_PORT:-36080}:80'
+      - '127.0.0.1:${APP_HOST_PORT:-36080}:80'
     depends_on:
       interview-bank-api:
         condition: service_healthy
@@ -70,7 +70,7 @@ services:
     container_name: interview-bank-admin
     restart: unless-stopped
     ports:
-      - '${ADMIN_HOST_PORT:-36081}:80'
+      - '127.0.0.1:${ADMIN_HOST_PORT:-36081}:80'
     depends_on:
       interview-bank-api:
         condition: service_healthy
